@@ -56,41 +56,23 @@ BATCH_SIZE   = 32
 
 def preprocesar_imagen_np(img_bgr: np.ndarray) -> np.ndarray:
     """
-    Convierte una imagen BGR de OpenCV al tensor de entrada del modelo.
+    Preproceso para inferencia — idéntico a _preprocesar_tf:
+      1. Escala de grises
+      2. Resize estirando a IMG_H x IMG_W (mismo que Keras en entrenamiento)
+      3. Replicar canal gris a RGB
+      4. Normalizar a [-1, 1]
 
-    Pasos:
-      1. Escala de grises — los dígitos segmentados no tienen color útil
-      2. Resize con padding letterbox — preserva la proporción del dígito
-         sin deformar el trazo (un 1 estirado parece un 7)
-      3. Replicar canal gris a RGB — MobileNetV3 fue preentrenado en RGB
-         y espera 3 canales; replicar es más correcto que rellenar con ceros
-      4. Normalizar a [-1, 1] — rango que usa MobileNetV3 internamente
-
-    Returns:
-        tensor float32 de forma (1, IMG_H, IMG_W, 3)
+    No se usa letterbox para mantener consistencia con el entrenamiento,
+    donde Keras estira las imágenes al cargar el dataset.
     """
-    # 1. Escala de grises
     if img_bgr.ndim == 3:
         gris = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     else:
         gris = img_bgr.copy()
 
-    # 2. Letterbox resize
-    h, w    = gris.shape[:2]
-    scale   = min(IMG_W / w, IMG_H / h)
-    new_w   = int(w * scale)
-    new_h   = int(h * scale)
-    resized = cv2.resize(gris, (new_w, new_h), interpolation=cv2.INTER_AREA)
-
-    canvas  = np.zeros((IMG_H, IMG_W), dtype=np.uint8)
-    x_off   = (IMG_W - new_w) // 2
-    y_off   = (IMG_H - new_h) // 2
-    canvas[y_off:y_off + new_h, x_off:x_off + new_w] = resized
-
-    # 3. Gris → RGB (replicar canal)
-    rgb = cv2.cvtColor(canvas, cv2.COLOR_GRAY2RGB)
-
-    # 4. Normalizar a [-1, 1]
+    # Mismo estiramiento que image_dataset_from_directory
+    img_96 = cv2.resize(gris, (IMG_W, IMG_H), interpolation=cv2.INTER_AREA)
+    rgb    = cv2.cvtColor(img_96, cv2.COLOR_GRAY2RGB)
     tensor = (rgb.astype(np.float32) / 127.5) - 1.0
 
     return np.expand_dims(tensor, axis=0)   # (1, H, W, 3)
@@ -98,51 +80,27 @@ def preprocesar_imagen_np(img_bgr: np.ndarray) -> np.ndarray:
 
 def _preprocesar_tf(image, label):
     """
-    Preproceso con letterbox para preservar el ratio de aspecto.
+    Preproceso para el pipeline de entrenamiento.
 
-    image llega como tensor uint8 (IMG_H, IMG_W, 3) ya redimensionado
-    (estirado) por Keras. Lo revertimos al tamaño original implícito
-    rehaciendo el resize con padding, igual que preprocesar_imagen_np.
+    La estrategia más robusta para evitar errores de rank dentro de
+    tf.data.map es no hacer resize dinámico en absoluto: la imagen ya
+    llega a 96x96 redimensionada por Keras, y simplemente convertimos
+    a gris, replicamos a RGB y normalizamos.
 
-    Problema que corrige:
-        Los dígitos del dataset tienen ratio 2:1 (64x32px). Keras los
-        estira a 96x96 duplicando su ancho. Al estirar, un "1" angosto
-        adquiere el ancho de un "5", y un "6" se parece a un "8".
-        Letterbox preserva el ratio original poniendo padding negro.
+    El problema de deformación de aspecto (dígitos 64x32 estirados a
+    96x96) se resuelve en la carga del dataset usando image_size con
+    el ratio correcto o — más simple — aceptando que el modelo aprende
+    los dígitos en esa proporción y usando exactamente el mismo
+    estiramiento tanto en entrenamiento como en inferencia.
 
-    Pipeline:
-        1. Convertir a escala de grises
-        2. Resize con padding (letterbox) a IMG_H x IMG_W
-        3. Replicar canal gris a RGB (3 canales para MobileNetV3)
-        4. Normalizar a [-1, 1]
+    Ambos pipelines (entrenamiento e inferencia) aplican el mismo
+    estiramiento → el modelo ve imágenes consistentes en ambos casos.
     """
-    # 1. Escala de grises
-    gris = tf.image.rgb_to_grayscale(image)            # (H, W, 1)
-
-    # 2. Letterbox usando tf.image.resize_with_pad
-    #    Opera directamente sobre tensores 3D (H, W, C) sin agregar
-    #    dimensión de batch, lo que evita el error de rank en tf.pad.
-    #    resize_with_pad hace internamente: resize preservando ratio +
-    #    padding simétrico con ceros, que es exactamente lo que necesitamos.
-    gris_padded = tf.image.resize_with_pad(
-        gris,
-        target_height=IMG_H,
-        target_width=IMG_W,
-        method="area",
-    )
-    gris_padded = tf.ensure_shape(gris_padded, [IMG_H, IMG_W, 1])
-
-    # 3. Replicar canal gris a RGB
-    rgb = tf.repeat(gris_padded, 3, axis=-1)           # (H, W, 3)
-
-    # 4. Normalizar a [-1, 1]
-    rgb = (tf.cast(rgb, tf.float32) / 127.5) - 1.0
+    gris = tf.image.rgb_to_grayscale(image)        # (H, W, 1)
+    rgb  = tf.repeat(gris, 3, axis=-1)             # (H, W, 3)
+    rgb  = (tf.cast(rgb, tf.float32) / 127.5) - 1.0
     return rgb, label
 
-
-# ─────────────────────────────────────────────────────────────
-# AUGMENTATION (solo en train)
-# ─────────────────────────────────────────────────────────────
 
 def _augmentar(image, label):
     """
@@ -156,7 +114,8 @@ def _augmentar(image, label):
     de forma [H, W, C] y random_crop recibe un size de longitud distinta.
     """
     image = tf.image.random_brightness(image, max_delta=0.15)
-    image = tf.image.random_contrast(image, lower=0.8, upper=1.2)
+    #image = tf.image.random_contrast(image, lower=0.8, upper=1.2)
+    image = tf.image.random_contrast(image, lower=0.5, upper=1.5)  # era 0.8, 1.2
 
     # Zoom leve: recortar el centro al 90% y redimensionar de vuelta
     image = tf.image.central_crop(image, central_fraction=0.90)
@@ -666,4 +625,3 @@ Ejemplos:
         if not args.imagen:
             parser.error("--imagen es requerido en modo infer")
         inferir(args.imagen)
-
