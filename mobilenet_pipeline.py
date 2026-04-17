@@ -130,28 +130,221 @@ def _preprocesar_tf(image, label):
     rgb  = (tf.cast(rgb, tf.float32) / 127.5) - 1.0
     return rgb, label
 
+def _ecualizar_contraste_tf(image):
+    """
+    Aproximación adaptativa de CLAHE implementada en TensorFlow puro.
+
+    Sin tf.py_function ni OpenCV — opera directamente sobre tensores,
+    evitando todos los problemas de rank y contiguidad de memoria.
+
+    Estrategia:
+        Divide la imagen en una cuadrícula de tiles (4×4 por defecto),
+        normaliza el histograma de cada tile por separado estirando
+        sus valores al rango completo, y luego recombina los tiles.
+        El resultado es equivalente a CLAHE sin clip limit: cada zona
+        local de la imagen obtiene su propio ajuste de contraste.
+
+    Args:
+        image: tensor float32 (H, W, 3) en rango [-1, 1]
+
+    Returns:
+        tensor float32 (H, W, 3) en rango [-1, 1] con contraste mejorado
+    """
+    N_TILES = 4   # cuadrícula 4×4 = 16 tiles sobre imagen 96×96
+    tile_h  = IMG_H // N_TILES   # 24 px por tile
+    tile_w  = IMG_W // N_TILES   # 24 px por tile
+
+    # Reorganizar en tiles: (H, W, 3) → (N_TILES, N_TILES, tile_h, tile_w, 3)
+    # Paso 1: reshape a (N_TILES, tile_h, N_TILES, tile_w, 3)
+    tiles = tf.reshape(image, [N_TILES, tile_h, N_TILES, tile_w, 3])
+    # Paso 2: transponer a (N_TILES, N_TILES, tile_h, tile_w, 3)
+    tiles = tf.transpose(tiles, [0, 2, 1, 3, 4])
+
+    # Normalizar cada tile por separado estirando al rango completo
+    # min/max por tile: (N_TILES, N_TILES, 1, 1, 1)
+    t_min = tf.reduce_min(tiles, axis=[2, 3, 4], keepdims=True)
+    t_max = tf.reduce_max(tiles, axis=[2, 3, 4], keepdims=True)
+    rango = tf.maximum(t_max - t_min, 1e-6)
+
+    # Estirar cada tile a [-1, 1]
+    tiles_norm = (tiles - t_min) / rango * 2.0 - 1.0
+
+    # Reconstruir imagen completa
+    # Transponer de vuelta: (N_TILES, N_TILES, tile_h, tile_w, 3) → (N_TILES, tile_h, N_TILES, tile_w, 3)
+    tiles_back = tf.transpose(tiles_norm, [0, 2, 1, 3, 4])
+    image_out  = tf.reshape(tiles_back, [IMG_H, IMG_W, 3])
+
+    return image_out
+
 
 def _augmentar(image, label):
     """
-    Augmentaciones basadas en color y brillo — apropiadas para dígitos.
+    Augmentaciones fotométricas para dígitos de medidores.
 
-    Para clasificación de dígitos de medidores las transformaciones
-    geométricas (rotación, traslación, zoom) son contraproducentes:
-    un dígito desplazado o recortado puede volverse irreconocible o
-    parecerse a otro dígito. El dominio útil de augmentation es el
-    fotométrico: variaciones de iluminación, contraste y ruido que
-    simulan las condiciones reales de campo sin alterar la forma del dígito.
+    Usa una aproximación adaptativa de CLAHE implementada en TF puro
+    (sin tf.py_function ni OpenCV) para evitar problemas de shapes
+    dentro del pipeline tf.data con num_parallel_calls=AUTOTUNE.
+
+    La ecualización por tiles mejora localmente el contraste donde el
+    dígito necesita resaltar, especialmente en las clases 4, 5 y 6
+    que tienen muchas imágenes con std < 30.
+
+    Operaciones:
+        1. Brillo aleatorio           — variaciones de iluminación
+        2. Contraste aleatorio        — distintas exposiciones
+        3. Ecualización por tiles     — contraste adaptativo (prob=0.5)
+        4. Ruido gaussiano leve       — sensor de cámara económica
     """
+    # 1. Brillo y contraste fotométrico
     image = tf.image.random_brightness(image, max_delta=0.2)
     image = tf.image.random_contrast(image, lower=0.6, upper=1.4)
 
-    # Ruido gaussiano leve — simula cámaras de baja calidad
+    # 2. Ecualización adaptativa por tiles con probabilidad 0.5
+    aplicar_ecual = tf.random.uniform(()) > 0.5
+    image = tf.cond(
+        aplicar_ecual,
+        true_fn=lambda: _ecualizar_contraste_tf(image),
+        false_fn=lambda: image,
+    )
+
+    # 3. Ruido gaussiano leve
     noise = tf.random.normal(
         shape=tf.shape(image), mean=0.0, stddev=0.04, dtype=tf.float32
     )
     image = image + noise
     image = tf.clip_by_value(image, -1.0, 1.0)
     return image, label
+
+
+
+# ─────────────────────────────────────────────────────────────
+# INSPECCIÓN VISUAL DEL PIPELINE
+# ─────────────────────────────────────────────────────────────
+
+def inspeccionar_pipeline(
+    n_imagenes: int = 4,
+    n_augmentaciones: int = 4,
+    salida: str = "pipeline_debug.jpg",
+):
+    """
+    Genera una grilla visual que muestra cómo el pipeline transforma
+    las imágenes antes de que lleguen al modelo.
+
+    Para cada imagen de muestra genera una fila con:
+      - Columna 0 : imagen original del disco (tal como está en train/)
+      - Columna 1 : post _preprocesar_tf (gris, normalizada a [-1,1])
+      - Columnas 2+: post _augmentar aplicado N veces
+
+    Los valores [-1,1] se convierten a [0,255] para visualización.
+    Cada panel muestra mean y std del tensor para verificar rangos.
+
+    Uso:
+        python mobilenet_pipeline.py --modo inspect
+        python mobilenet_pipeline.py --modo inspect --n-imagenes 6 --n-aug 6
+    """
+    import random
+
+    train_dir = Path(DATASET_DIR) / "train"
+    if not train_dir.exists():
+        raise FileNotFoundError(f"No existe {train_dir}")
+
+    # Una imagen por clase + extras al azar si n_imagenes > n_clases
+    clases_dirs   = sorted(train_dir.iterdir())
+    rutas_muestra = []
+    for clase_dir in clases_dirs:
+        archivos = list(clase_dir.glob("*.png"))
+        if archivos:
+            rutas_muestra.append(random.choice(archivos))
+
+    todos = [r for c in clases_dirs for r in list(c.glob("*.png"))[:50]]
+    while len(rutas_muestra) < n_imagenes and todos:
+        c = random.choice(todos)
+        if c not in rutas_muestra:
+            rutas_muestra.append(c)
+    rutas_muestra = rutas_muestra[:n_imagenes]
+
+    PANEL_W = IMG_W
+    PANEL_H = IMG_H
+    INFO_H  = 28
+    SEP     = 3
+
+    print(f"[inspect] {len(rutas_muestra)} filas x {2 + n_augmentaciones} columnas")
+
+    def tensor_a_bgr(t_np):
+        img = ((t_np + 1.0) * 127.5).clip(0, 255).astype(np.uint8)
+        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+    def hacer_panel(img_bgr, titulo, info=""):
+        panel = np.zeros((PANEL_H + INFO_H, PANEL_W, 3), dtype=np.uint8)
+        panel[:PANEL_H] = cv2.resize(img_bgr, (PANEL_W, PANEL_H), interpolation=cv2.INTER_AREA)
+        panel[PANEL_H:] = (40, 40, 40)
+        cv2.putText(panel, titulo,   (2, PANEL_H + 11), cv2.FONT_HERSHEY_SIMPLEX, 0.3,  (220,220,220), 1)
+        cv2.putText(panel, info,     (2, PANEL_H + 23), cv2.FONT_HERSHEY_SIMPLEX, 0.28, (160,160,160), 1)
+        return panel
+
+    filas = []
+    for ruta in rutas_muestra:
+        clase    = ruta.parent.name
+        img_orig = cv2.imread(str(ruta))
+        if img_orig is None:
+            continue
+        g_orig = cv2.cvtColor(img_orig, cv2.COLOR_BGR2GRAY)
+
+        # Col 0: original
+        p0 = hacer_panel(img_orig, f"original c={clase}",
+                         f"mean={g_orig.mean():.0f} std={g_orig.std():.0f}")
+
+        # Col 1: preprocesado (simular Keras resize + _preprocesar_tf)
+        img_rgb   = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
+        img_96    = cv2.resize(img_rgb, (IMG_W, IMG_H))
+        tensor_96 = tf.constant(img_96, dtype=tf.uint8)
+        prep_t, _ = _preprocesar_tf(tensor_96, 0)
+        prep_np   = prep_t.numpy()
+        p1 = hacer_panel(tensor_a_bgr(prep_np), "preprocesado",
+                         f"mean={prep_np.mean():.2f} std={prep_np.std():.2f}")
+
+        # Cols 2+: augmentadas
+        paneles_aug = []
+        for j in range(n_augmentaciones):
+            aug_t, _ = _augmentar(prep_t, 0)
+            aug_np   = aug_t.numpy()
+            p = hacer_panel(tensor_a_bgr(aug_np), f"aug #{j+1}",
+                            f"mean={aug_np.mean():.2f} std={aug_np.std():.2f}")
+            paneles_aug.append(p)
+
+        sep_v = np.ones((PANEL_H + INFO_H, SEP, 3), dtype=np.uint8) * 20
+        fila  = p0
+        for p in [p1] + paneles_aug:
+            fila = np.hstack([fila, sep_v, p])
+
+        etiq = np.ones((PANEL_H + INFO_H, 22, 3), dtype=np.uint8) * 55
+        cv2.putText(etiq, f"c={clase}", (2, (PANEL_H + INFO_H)//2 + 4),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.38, (200,200,200), 1)
+        filas.append(np.hstack([etiq, fila]))
+
+    if not filas:
+        print("[inspect] No se encontraron imágenes.")
+        return
+
+    # Encabezado
+    ancho   = filas[0].shape[1]
+    header  = np.ones((18, ancho, 3), dtype=np.uint8) * 70
+    col_w   = PANEL_W + SEP
+    titulos = ["", "original", "preprocesado"] + [f"aug#{j+1}" for j in range(n_augmentaciones)]
+    for j, tit in enumerate(titulos):
+        cv2.putText(header, tit, (22 + j * col_w + 2, 13),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.32, (220,220,220), 1)
+
+    sep_h  = np.ones((SEP, ancho, 3), dtype=np.uint8) * 20
+    grilla = header
+    for fila in filas:
+        grilla = np.vstack([grilla, sep_h, fila])
+
+    cv2.imwrite(salida, grilla)
+    print(f"[inspect] Guardado: {salida}  ({grilla.shape[1]}x{grilla.shape[0]}px)")
+    print(f"          original → preprocesado → aug x{n_augmentaciones}")
+    print(f"          mean≈0 y std≈0.3-0.5 en [-1,1] es lo esperado.")
+
 
 # ─────────────────────────────────────────────────────────────
 # CONSTRUCCIÓN DEL MODELO
@@ -328,6 +521,18 @@ def _cargar_datasets():
         .map(_augmentar,      num_parallel_calls=tf.data.AUTOTUNE)
         .prefetch(tf.data.AUTOTUNE)
     )
+    """
+    import matplotlib.pyplot as plt
+    # Para recuperar una imagen para inspeccionarla:
+    for img_tensor in train_ds.take(30):
+        imagen_final = img_tensor.numpy()
+        #print("Forma de la imagen:", imagen_final.shape)
+        plt.figure(figsize=(8, 8))
+        plt.imshow(imagen_final, cmap='gray')  # 'gray' si es blanco y negro
+        plt.axis('off')  # Para quitar los ejes de coordenadas
+        plt.show()
+    """
+
     val_ds = (
         val_ds_raw
         .map(_preprocesar_tf, num_parallel_calls=tf.data.AUTOTUNE)
@@ -702,8 +907,8 @@ Ejemplos:
         """
     )
     parser.add_argument(
-        "--modo", choices=["train", "export", "infer"], required=True,
-        help="train: entrenar | export: exportar a TFLite | infer: clasificar imagen"
+        "--modo", choices=["train", "export", "infer", "inspect"], required=True,
+        help="train: entrenar | export: exportar a TFLite | infer: clasificar imagen | inspect: ver pipeline"
     )
 
     # ── Parámetros de entrenamiento ───────────────────────────
@@ -751,6 +956,19 @@ Ejemplos:
         "--dataset", type=str, default=DATASET_DIR,
         help=f"Directorio del dataset (default: {DATASET_DIR})"
     )
+    parser.add_argument(
+        "--n-imagenes", type=int, default=4, dest="n_imagenes",
+        help="Imágenes a mostrar en modo inspect (default: 4)"
+    )
+    parser.add_argument(
+        "--n-aug", type=int, default=4, dest="n_aug",
+        help="Versiones augmentadas por imagen en modo inspect (default: 4)"
+    )
+    parser.add_argument(
+        "--salida-inspect", type=str, default="pipeline_debug.jpg",
+        dest="salida_inspect",
+        help="Archivo de salida para modo inspect (default: pipeline_debug.jpg)"
+    )
     args = parser.parse_args()
 
     if args.dataset != DATASET_DIR:
@@ -772,3 +990,9 @@ Ejemplos:
         if not args.imagen:
             parser.error("--imagen es requerido en modo infer")
         inferir(args.imagen)
+    elif args.modo == "inspect":
+        inspeccionar_pipeline(
+            n_imagenes=args.n_imagenes,
+            n_augmentaciones=args.n_aug,
+            salida=args.salida_inspect,
+        )
