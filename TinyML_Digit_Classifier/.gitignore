@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Large binaries and trained model weights (generated via train.py / quantize_and_export.py)
+models/*.keras
+models/*.tflite
+models/*.h5
+temp_weights*
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
