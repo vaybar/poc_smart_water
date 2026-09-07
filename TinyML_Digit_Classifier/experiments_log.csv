@@ -1,0 +1,4 @@
+Exp_ID,Timestamp,Alpha,Input_Shape,Epochs,Batch_Size,Float32_Acc_%,INT8_Acc_%,Quant_Loss_%,Flash_KB,RAM_Arena_KB,Notes,Macro_F1,Weighted_F1,Latency_ms,Report_Path
+EXP_001,2026-09-04 22:12,0.25,32x32x1,30,32,87.69,87.25,0.44,12.85,13.86,Entrenamiento con alpha=0.25,,,,
+EXP_002,2026-09-04 22:21,0.25,32x32x1,30,32,87.69,87.25,0.44,12.85,13.86,Entrenamiento con alpha=0.25,,,,
+EXP_003,2026-09-07 14:43,0.25,32x32x1,30,32,87.69,87.25,0.44,12.85,13.86,Evaluación de prueba previa recuperada (retroactiva),0.843,0.875,0.023,experiments/EXP_003/report.md

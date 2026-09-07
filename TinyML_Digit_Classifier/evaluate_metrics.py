@@ -107,7 +107,9 @@ def evaluate_full_metrics():
     
     print("\n--- PER-CLASS CLASSIFICATION REPORT (INT8) ---")
     target_names = [f"Digit '{d}'" for d in range(10)]
-    print(classification_report(y_test, int8_preds, target_names=target_names, digits=3))
+    report_text = classification_report(y_test, int8_preds, target_names=target_names, digits=3)
+    report_dict = classification_report(y_test, int8_preds, output_dict=True)
+    print(report_text)
     
     print("--- CONFUSION MATRIX (Rows: True, Cols: Predicted) ---")
     cm = confusion_matrix(y_test, int8_preds)
@@ -118,6 +120,57 @@ def evaluate_full_metrics():
         row_str = " ".join([f"{val:4d}" for val in row])
         print(f" Digit '{i}'  | {row_str}")
     print("=" * 65)
+
+    # -------------------------------------------------------------
+    # LOG TO BITÁCORA & PER-EXPERIMENT REPORTS
+    # -------------------------------------------------------------
+    exp_id = None
+    try:
+        from experiment_logger import log_experiment
+        # Estimate arena RAM: ~0.3 of model size + 10KB
+        arena_est_kb = (len(tflite_bytes) * 0.3) / 1024.0 + 10.0
+        exp_id = log_experiment(
+            alpha=config.ALPHA,
+            input_shape=f"{config.IMG_H}x{config.IMG_W}x{config.CHANNELS}",
+            epochs=config.EPOCHS,
+            batch_size=config.BATCH_SIZE,
+            float_acc=f32_acc,
+            int8_acc=int8_acc,
+            flash_kb=flash_size_kb,
+            arena_kb=arena_est_kb,
+            latency_ms=avg_latency,
+            classification_report_dict=report_dict,
+            confusion_matrix_arr=cm,
+            notes=f"Entrenamiento con alpha={config.ALPHA}"
+        )
+    except Exception as e:
+        print(f"Could not update experiment log: {e}")
+
+    # Save visual Confusion Matrix plot if matplotlib is available
+    try:
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(figsize=(7, 6))
+        cax = ax.matshow(cm, cmap="Blues")
+        fig.colorbar(cax)
+        plt.title(f"Matriz de Confusión - TinyML INT8 ({exp_id if exp_id else 'Evaluation'})", pad=20, fontsize=12, fontweight="bold")
+        plt.xlabel("Predicho (Predicted)", fontsize=10)
+        plt.ylabel("Real (True)", fontsize=10)
+        plt.xticks(range(10), range(10))
+        plt.yticks(range(10), range(10))
+        
+        # Annotate numbers inside matrix cells
+        for i in range(10):
+            for j in range(10):
+                color = "white" if cm[i, j] > np.max(cm) / 2 else "black"
+                ax.text(j, i, str(cm[i, j]), ha="center", va="center", color=color, fontweight="bold")
+                
+        plot_path = (config.EXPERIMENTS_DIR / exp_id / "confusion_matrix.png") if exp_id else (config.MODELS_DIR / "confusion_matrix.png")
+        plt.tight_layout()
+        plt.savefig(plot_path, dpi=150)
+        print(f"--> Visual Confusion Matrix plot saved to: {plot_path}")
+        plt.close(fig)
+    except Exception as err:
+        print(f"Note: Could not render plot ({err})")
 
 if __name__ == "__main__":
     evaluate_full_metrics()

@@ -12,6 +12,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 MODELS_DIR = BASE_DIR / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
+EXPERIMENTS_DIR = BASE_DIR / "experiments"
+EXPERIMENTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Microcontroller Target Budget Constraints
 MAX_FLASH_BYTES = 256 * 1024       # Target < 256 KB Flash (upper limit 500 KB)

@@ -1,0 +1,224 @@
+{
+  "exp_id": "EXP_003",
+  "timestamp": "2026-09-07 14:43",
+  "hyperparameters": {
+    "alpha": 0.25,
+    "input_shape": "32x32x1",
+    "epochs": 30,
+    "batch_size": 32
+  },
+  "summary_metrics": {
+    "float32_accuracy_%": 87.69,
+    "int8_accuracy_%": 87.25,
+    "quantization_loss_%": 0.44,
+    "latency_ms_per_image": 0.023,
+    "flash_kb": 12.85,
+    "ram_arena_kb": 13.86,
+    "macro_precision": 0.819,
+    "macro_recall": 0.873,
+    "macro_f1": 0.843,
+    "weighted_precision": 0.885,
+    "weighted_recall": 0.872,
+    "weighted_f1": 0.875
+  },
+  "classification_report": {
+    "0": {
+      "precision": 0.98,
+      "recall": 0.869,
+      "f1-score": 0.921,
+      "support": 1561
+    },
+    "1": {
+      "precision": 0.883,
+      "recall": 0.863,
+      "f1-score": 0.873,
+      "support": 395
+    },
+    "2": {
+      "precision": 0.836,
+      "recall": 0.919,
+      "f1-score": 0.876,
+      "support": 272
+    },
+    "3": {
+      "precision": 0.828,
+      "recall": 0.855,
+      "f1-score": 0.841,
+      "support": 242
+    },
+    "4": {
+      "precision": 0.884,
+      "recall": 0.93,
+      "f1-score": 0.906,
+      "support": 213
+    },
+    "5": {
+      "precision": 0.74,
+      "recall": 0.918,
+      "f1-score": 0.819,
+      "support": 220
+    },
+    "6": {
+      "precision": 0.771,
+      "recall": 0.876,
+      "f1-score": 0.82,
+      "support": 185
+    },
+    "7": {
+      "precision": 0.754,
+      "recall": 0.833,
+      "f1-score": 0.792,
+      "support": 180
+    },
+    "8": {
+      "precision": 0.88,
+      "recall": 0.828,
+      "f1-score": 0.854,
+      "support": 204
+    },
+    "9": {
+      "precision": 0.638,
+      "recall": 0.839,
+      "f1-score": 0.725,
+      "support": 174
+    },
+    "accuracy": 0.8725,
+    "macro avg": {
+      "precision": 0.819,
+      "recall": 0.873,
+      "f1-score": 0.843,
+      "support": 3646
+    },
+    "weighted avg": {
+      "precision": 0.885,
+      "recall": 0.872,
+      "f1-score": 0.875,
+      "support": 3646
+    }
+  },
+  "confusion_matrix": [
+    [
+      1356,
+      31,
+      17,
+      20,
+      3,
+      23,
+      31,
+      9,
+      7,
+      64
+    ],
+    [
+      9,
+      341,
+      1,
+      2,
+      4,
+      0,
+      0,
+      37,
+      1,
+      0
+    ],
+    [
+      2,
+      0,
+      250,
+      6,
+      2,
+      6,
+      0,
+      2,
+      1,
+      3
+    ],
+    [
+      5,
+      1,
+      5,
+      207,
+      4,
+      15,
+      2,
+      0,
+      1,
+      2
+    ],
+    [
+      0,
+      2,
+      4,
+      5,
+      198,
+      0,
+      0,
+      0,
+      2,
+      2
+    ],
+    [
+      1,
+      0,
+      8,
+      5,
+      0,
+      202,
+      1,
+      0,
+      2,
+      1
+    ],
+    [
+      2,
+      0,
+      0,
+      0,
+      0,
+      10,
+      162,
+      1,
+      5,
+      5
+    ],
+    [
+      2,
+      11,
+      10,
+      1,
+      4,
+      2,
+      0,
+      150,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      2,
+      6,
+      8,
+      11,
+      0,
+      169,
+      6
+    ],
+    [
+      6,
+      0,
+      3,
+      2,
+      3,
+      7,
+      3,
+      0,
+      4,
+      146
+    ]
+  ],
+  "notes": "Evaluación de prueba previa recuperada (retroactiva)",
+  "hypothesis": "Establecer la línea base (baseline) con Micro-MobileNet alpha=0.25 (32x32x1) y evaluar exactitud INT8 en target ESP32-S3.",
+  "conclusions": "Se logró una exactitud INT8 de 87.25% ocupando 12.85 KB de Flash (5% del límite) y 13.86 KB de RAM. Se identificó baja precisión en el dígito 9 (63.8%)."
+}
