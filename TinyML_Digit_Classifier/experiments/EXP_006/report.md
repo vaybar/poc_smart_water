@@ -1,12 +1,12 @@
 # 🔬 Reporte Detallado de Experimento - `EXP_006`
 
 - **Fecha / Hora:** 2026-09-08 20:20
-- **Notas / Cambios:** Entrenamiento con alpha=0.25
+- **Notas / Cambios:** Entrenamiento con alpha=0.35 (Dataset Limpio v1.1)
 
 ---
 
 ## 🎯 Hipótesis y Contexto del Experimento
-_No se especificó hipótesis formal para este experimento._
+Este experimento evalúa el impacto de **incrementar la capacidad del modelo a $\alpha = 0.35$** (manteniendo 30 épocas y el dataset limpio v1.1) para determinar si la adición de filtros (de 8-16 a 11-22 filtros) resuelve la ambigüedad visual en dígitos complejos.
 
 ---
 
@@ -14,7 +14,7 @@ _No se especificó hipótesis formal para este experimento._
 
 | Parámetro | Valor |
 | :--- | :--- |
-| **Multiplicador de Ancho ($\alpha$)** | `0.25` |
+| **Multiplicador de Ancho ($\alpha$)** | `0.35` |
 | **Dimensión de Entrada** | `32x32x1` |
 | **Épocas de Entrenamiento** | `30` |
 | **Tamaño de Batch** | `32` |

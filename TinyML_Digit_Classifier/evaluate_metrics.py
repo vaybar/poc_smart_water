@@ -11,6 +11,8 @@ Generates full evaluation metrics for both Float32 and Quantized INT8 models:
 """
 
 import time
+import argparse
+import re
 from pathlib import Path
 import numpy as np
 import tensorflow as tf
@@ -19,7 +21,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 import config
 from dataset import load_digit_dataset
 
-def evaluate_full_metrics():
+def evaluate_full_metrics(alpha: float = None, epochs: int = config.EPOCHS):
     print("=" * 65)
     print("      TinyML Digit Classifier - Comprehensive Model Metrics")
     print("=" * 65)
@@ -31,10 +33,18 @@ def evaluate_full_metrics():
     # -------------------------------------------------------------
     # EVALUATION 1: Float32 Model
     # -------------------------------------------------------------
+    detected_alpha = alpha
     if config.FLOAT_MODEL_PATH.exists():
         print("--- [1/2] Evaluating Float32 Model ---")
         float_model = tf.keras.models.load_model(str(config.FLOAT_MODEL_PATH))
         
+        # Try detecting alpha from model name if not explicitly passed
+        if detected_alpha is None:
+            match = re.search(r"alpha([\d.]+)", float_model.name)
+            if match:
+                detected_alpha = float(match.group(1))
+                print(f" Detected Alpha from model name: {detected_alpha:.2f}")
+                
         t0 = time.perf_counter()
         f32_preds_prob = float_model.predict(x_test, verbose=0)
         t1 = time.perf_counter()
@@ -48,6 +58,9 @@ def evaluate_full_metrics():
     else:
         print("Float32 model checkpoint not found. Skipping Float32 evaluation.")
         f32_acc = None
+
+    if detected_alpha is None:
+        detected_alpha = config.ALPHA
 
     # -------------------------------------------------------------
     # EVALUATION 2: INT8 Quantized Model
@@ -97,6 +110,7 @@ def evaluate_full_metrics():
     print("\n" + "=" * 65)
     print("                    FINAL METRICS SUMMARY")
     print("=" * 65)
+    print(f" Active Alpha Multiplier       : {detected_alpha}")
     print(f" Flash Memory Size (TFLite INT8) : {flash_size_kb:.2f} KB  (Target < 256 KB)")
     print(f" INT8 Model Test Accuracy       : {int8_acc:.2f}%")
     if f32_acc is not None:
@@ -130,9 +144,9 @@ def evaluate_full_metrics():
         # Estimate arena RAM: ~0.3 of model size + 10KB
         arena_est_kb = (len(tflite_bytes) * 0.3) / 1024.0 + 10.0
         exp_id = log_experiment(
-            alpha=config.ALPHA,
+            alpha=detected_alpha,
             input_shape=f"{config.IMG_H}x{config.IMG_W}x{config.CHANNELS}",
-            epochs=config.EPOCHS,
+            epochs=epochs,
             batch_size=config.BATCH_SIZE,
             float_acc=f32_acc,
             int8_acc=int8_acc,
@@ -141,7 +155,7 @@ def evaluate_full_metrics():
             latency_ms=avg_latency,
             classification_report_dict=report_dict,
             confusion_matrix_arr=cm,
-            notes=f"Entrenamiento con alpha={config.ALPHA}"
+            notes=f"Entrenamiento con alpha={detected_alpha}"
         )
     except Exception as e:
         print(f"Could not update experiment log: {e}")
@@ -173,4 +187,9 @@ def evaluate_full_metrics():
         print(f"Note: Could not render plot ({err})")
 
 if __name__ == "__main__":
-    evaluate_full_metrics()
+    parser = argparse.ArgumentParser(description="Evaluate Micro-MobileNet Metrics for TinyML Digit Classifier")
+    parser.add_argument("--alpha", type=float, default=None, help="Width multiplier (0.10, 0.25, 0.35, 0.50)")
+    parser.add_argument("--epochs", type=int, default=config.EPOCHS, help="Number of training epochs")
+    args = parser.parse_args()
+    
+    evaluate_full_metrics(alpha=args.alpha, epochs=args.epochs)
