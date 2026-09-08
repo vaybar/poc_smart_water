@@ -1,8 +1,8 @@
 # 🔍 Reporte de Diagnóstico de Errores y Label Noise
 
 - **Muestras Totales de Prueba:** 3637
-- **Exactitud Global:** 87.35%
-- **Total Errores:** 460 (12.65%)
+- **Exactitud Global:** 87.87%
+- **Total Errores:** 441 (12.13%)
 
 ---
 
@@ -12,7 +12,7 @@
 | :--- | :--- | :--- | :--- |
 | **Label Noise Candidates** | **0** | **0.0%** | Predicción errónea con confianza $> 70\%$. Alto riesgo de estar mal etiquetada en el dataset original. |
 | **Recortes Descentrados** | **0** | **0.0%** | Dígito desplazado del centro por $> 6$ píxeles en la segmentación. |
-| **Confusión Estándar** | **460** | **100.0%** | Ambigüedad visual entre dígitos similares. |
+| **Confusión Estándar** | **441** | **100.0%** | Ambigüedad visual entre dígitos similares. |
 
 ---
 
@@ -20,14 +20,14 @@
 
 | Clase Real | Predicción Errónea | Ocurrencias |
 | :--- | :--- | :--- |
-| Dígito '0' | Dígito '9' | **64** |
-| Dígito '1' | Dígito '7' | **36** |
-| Dígito '0' | Dígito '6' | **31** |
-| Dígito '0' | Dígito '1' | **28** |
-| Dígito '0' | Dígito '5' | **23** |
-| Dígito '0' | Dígito '3' | **20** |
-| Dígito '0' | Dígito '2' | **17** |
-| Dígito '3' | Dígito '5' | **15** |
+| Dígito '1' | Dígito '7' | **64** |
+| Dígito '0' | Dígito '6' | **50** |
+| Dígito '0' | Dígito '3' | **41** |
+| Dígito '0' | Dígito '9' | **32** |
+| Dígito '0' | Dígito '7' | **27** |
+| Dígito '0' | Dígito '1' | **21** |
+| Dígito '0' | Dígito '5' | **18** |
+| Dígito '0' | Dígito '2' | **13** |
 
 ---
 
@@ -35,16 +35,16 @@
 
 | Sample Index | Clase Real | Predicho | Confianza Predicción | Varianza Nitidez | Categoría |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `495` | Dígito '0' | **Dígito '1'** | `23.0%` | `401.52` | `CONFUSION` |
-| `2261` | Dígito '3' | **Dígito '4'** | `22.9%` | `1573.79` | `CONFUSION` |
-| `2192` | Dígito '2' | **Dígito '5'** | `22.7%` | `1005.61` | `CONFUSION` |
-| `3309` | Dígito '8' | **Dígito '4'** | `22.4%` | `1032.59` | `CONFUSION` |
-| `1933` | Dígito '1' | **Dígito '7'** | `22.4%` | `206.42` | `CONFUSION` |
-| `1721` | Dígito '1' | **Dígito '4'** | `22.4%` | `849.97` | `CONFUSION` |
-| `466` | Dígito '0' | **Dígito '2'** | `22.2%` | `1151.85` | `CONFUSION` |
-| `303` | Dígito '0' | **Dígito '2'** | `21.8%` | `1215.45` | `CONFUSION` |
-| `1290` | Dígito '0' | **Dígito '9'** | `21.7%` | `665.26` | `CONFUSION` |
-| `637` | Dígito '0' | **Dígito '3'** | `21.7%` | `1413.75` | `CONFUSION` |
+| `1811` | Dígito '1' | **Dígito '7'** | `23.1%` | `711.59` | `CONFUSION` |
+| `2133` | Dígito '2' | **Dígito '4'** | `23.1%` | `566.9` | `CONFUSION` |
+| `1699` | Dígito '1' | **Dígito '7'** | `23.0%` | `1490.71` | `CONFUSION` |
+| `795` | Dígito '0' | **Dígito '6'** | `23.0%` | `592.76` | `CONFUSION` |
+| `1658` | Dígito '1' | **Dígito '7'** | `23.0%` | `327.89` | `CONFUSION` |
+| `2023` | Dígito '2' | **Dígito '3'** | `23.0%` | `281.48` | `CONFUSION` |
+| `137` | Dígito '0' | **Dígito '6'** | `22.9%` | `543.35` | `CONFUSION` |
+| `2942` | Dígito '6' | **Dígito '5'** | `22.8%` | `205.67` | `CONFUSION` |
+| `343` | Dígito '0' | **Dígito '7'** | `22.8%` | `392.33` | `CONFUSION` |
+| `2206` | Dígito '2' | **Dígito '3'** | `22.7%` | `705.61` | `CONFUSION` |
 
 ---
 
