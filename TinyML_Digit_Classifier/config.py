@@ -20,8 +20,8 @@ MAX_FLASH_BYTES = 256 * 1024       # Target < 256 KB Flash (upper limit 500 KB)
 MAX_TENSOR_ARENA_BYTES = 40 * 1024  # Target < 40 KB RAM Tensor Arena
 
 # Model Architecture Parameters
-IMG_H = 32
-IMG_W = 32
+IMG_H = 64                        # Height = 64 px (native aspect ratio 2:1)
+IMG_W = 32                        # Width  = 32 px
 CHANNELS = 1                      # Grayscale input (1 channel vs 3)
 INPUT_SHAPE = (IMG_H, IMG_W, CHANNELS)
 NUM_CLASSES = 10                  # Digits 0 through 9

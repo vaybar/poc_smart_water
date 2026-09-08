@@ -1,6 +1,25 @@
 # 📓 Bitácora de Experimentos y Comparativos - TinyML Digit Classifier
 
-Este documento registra automáticamente los resultados de cada experimento, cambios de hiperparámetros y evolución de métricas de precisión, F1-Score y consumo de memoria (Flash/RAM).
+Este documento registra los experimentos, hipótesis de desarrollo, cambios de hiperparámetros y evolución de métricas de precisión, F1-Score y consumo de memoria (Flash/RAM).
+
+---
+
+## 🎯 Diario de Iteraciones e Hipótesis
+
+### 🔹 Fase 1: Baseline Inicial (`EXP_001` - `EXP_003`)
+- **Hipótesis:** Comprobar la viabilidad de la arquitectura Micro-MobileNet ($\alpha=0.25$) para clasificar dígitos en menos de 256 KB Flash y 40 KB RAM Arena.
+- **Resultado:** **87.25% Acc INT8**, 12.85 KB Flash, 13.86 KB RAM Arena.
+
+---
+
+### 🔹 Fase 2: Limpieza v1.1 y Modificación de Capacidad (`EXP_004` - `EXP_006`)
+- **Hipótesis:** En `EXP_006` con $\alpha = 0.35$ se incrementó la capacidad de filtros (14.24 KB Flash), obteniendo **87.87% Acc INT8**.
+- **Diagnóstico:** La resolución de entrada $32 \times 32$ aplastaba verticalmente al 50% las imágenes rectangulares nativas de $64 \times 32$, deformando los trazos curvos del dígito '6' y provocando confusión con el '0'.
+
+---
+
+### 🔹 Fase 3: Resolución Nativa $64 \times 32 \times 1$ + $\alpha=0.35$ (`EXP_007` - Próxima Ejecución)
+- **Hipótesis:** Cambiar la entrada a la relación de aspecto nativa de $64 \times 32 \times 1$ con $\alpha = 0.35$ eliminará la distorsión del '6' y '9', aprovechando la capacidad adicional para superar el **90.0% Acc** sin exceder los 40 KB de RAM Arena (~27 KB estimados).
 
 ---
 

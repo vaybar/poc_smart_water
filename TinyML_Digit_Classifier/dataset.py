@@ -17,9 +17,9 @@ import cv2
 import tensorflow as tf
 import config
 
-def preprocess_digit_image(img: np.ndarray, target_size=(config.IMG_H, config.IMG_W)) -> np.ndarray:
+def preprocess_digit_image(img: np.ndarray, target_size=(config.IMG_W, config.IMG_H)) -> np.ndarray:
     """
-    Preprocess a single image BGR/RGB/Grayscale to (32, 32, 1) uint8 numpy array.
+    Preprocess a single image BGR/RGB/Grayscale to (IMG_H, IMG_W, 1) uint8 numpy array.
     """
     if len(img.shape) == 3 and img.shape[2] == 3:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -104,13 +104,6 @@ def load_digit_dataset(dataset_path: Path = config.DATASET_DIR):
         n_total = len(images)
         n_train = int(n_total * 0.70)
         n_val   = int(n_total * 0.15)
-        
-        x_train, y_train = images[:n_train], labels[:n_train]
-        x_val, y_val     = images[n_train:n_train+n_val], labels[n_train:n_train+n_val]
-        x_test, y_test   = images[n_train+n_val:], labels[n_train+n_val:]
-        return (x_train, y_train), (x_val, y_val), (x_test, y_test)
-        n_train = int(n_total * 0.7)
-        n_val = int(n_total * 0.15)
         
         x_train, y_train = images[:n_train], labels[:n_train]
         x_val, y_val     = images[n_train:n_train+n_val], labels[n_train:n_train+n_val]
