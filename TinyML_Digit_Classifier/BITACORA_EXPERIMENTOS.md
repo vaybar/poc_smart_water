@@ -1,6 +1,29 @@
 # 📓 Bitácora de Experimentos y Comparativos - TinyML Digit Classifier
 
-Este documento registra automáticamente los resultados de cada experimento, cambios de hiperparámetros y evolución de métricas de precisión, F1-Score y consumo de memoria (Flash/RAM).
+Este documento registra los experimentos, hipótesis de desarrollo, cambios de hiperparámetros y evolución de métricas de precisión, F1-Score y consumo de memoria (Flash/RAM).
+
+---
+
+## 🎯 Diario de Iteraciones e Hipótesis
+
+### 🔹 Fase 1: Baseline Inicial (`EXP_001` - `EXP_003`)
+- **Hipótesis:** Comprobar la viabilidad de la arquitectura Micro-MobileNet ($\alpha=0.25$) para clasificar dígitos en menos de 256 KB Flash y 40 KB RAM Arena.
+- **Resultado:** **87.25% Acc INT8**, 12.85 KB Flash, 13.86 KB RAM Arena.
+
+---
+
+### 🔹 Fase 2: Limpieza de Dataset v1.1 (`EXP_004`)
+- **Hipótesis:** Filtrar 60 imágenes ruidosas/planas ($std < 10.0$) mejorará la estabilidad del modelo manteniendo $\alpha=0.25$ y 30 épocas.
+- **Resultado:** **86.88% Acc INT8**.
+- **Diagnóstico Ejecutado (`analyze_misclassifications.py`):**
+  - Se descartó *Label Noise* severo (confianza máxima en fallos de solo 23%).
+  - Confusiones principales: `0 -> 9` (64 fallos) y `1 -> 7` (36 fallos).
+  - La restricción de rendimiento no es ruido de etiquetas, sino **subcapacidad de expresión del multiplicador $\alpha=0.25$**.
+
+---
+
+### 🔹 Fase 3: Escalado de Capacidad del Modelo (`EXP_005` - Próxima Ejecución)
+- **Hipótesis:** Aumentar el multiplicador de ancho a **$\alpha = 0.35$** (manteniendo 30 épocas y el dataset limpio v1.1) dará los canales necesarios para resolver las fronteras de decisión entre `0-9` y `1-7`, superando el **90.0% Acc** sin exceder los límites de la ESP32-S3 (~25 KB Flash vs 256 KB límite).
 
 ---
 

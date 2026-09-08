@@ -6,6 +6,18 @@ Este documento registra cronológicamente las modificaciones, limpiezas, filtrad
 
 ## 📌 Historial de Versiones del Dataset
 
+### 🔹 Versión 1.2 (Diagnóstico de Errores & Label Noise Auditado) - [Fecha: 2026-09-08]
+- **Ubicación Dataset Activo:** `dataset_mobilenet/`
+- **Diagnóstico Ejecutado:** `analyze_misclassifications.py` sobre `EXP_004`.
+- **Hallazgo Clave:**
+  - Se analizaron los 460 errores (12.65% del test set).
+  - La confianza máxima de la predicción errónea fue de apenas **23.0%**, descartando la presencia de *Label Noise* severo (etiquetas cruzadas en el dataset original).
+  - **Causa Principal:** La degradación de exactitud proviene de la baja capacidad de filtros ($\alpha = 0.25$) para resolver fronteras entre dígitos similares (`0 -> 9` con 64 fallos, `1 -> 7` con 36 fallos).
+- **Experimentos Asociados:** `EXP_005` (donde se aislará la variable incrementando $\alpha = 0.35$).
+- **Estado:** Dataset Limpio v1.1 Confirmado.
+
+---
+
 ### 🔹 Versión 1.1 (Limpio & Aislado) - [Fecha: 2026-09-07]
 - **Ubicación Dataset Activo:** `dataset_mobilenet/`
 - **Ubicación Imágenes Descartadas:** `dataset_mobilenet/discarded_images/`
@@ -21,24 +33,13 @@ Este documento registra cronológicamente las modificaciones, limpiezas, filtrad
   - Dígito 8: 2 imágenes movidas
   - Dígito 3: 1 imagen movida
   - Dígito 5: 1 imagen movida
-- **Experimentos Asociados:** `EXP_004` en adelante.
-- **Estado:** Dataset Activo para Entrenamiento.
+- **Experimentos Asociados:** `EXP_004`.
+- **Estado:** Histórico v1.1.
 
 ---
 
 ### 🔹 Versión 1.0 (Original / Base Auditado) - [Fecha: 2026-09-07]
 - **Ubicación:** `dataset_mobilenet/`
 - **Volumen Total:** 23.704 imágenes (Train: 20.058, Val: 3.646).
-- **Desglose por Clase (Train Set):**
-  - Dígito 0: **8.684 imágenes (43.3%)**
-  - Dígito 1: 2.088 imágenes (10.4%)
-  - Dígito 2: 1.508 imágenes (7.5%)
-  - Dígito 3: 1.443 imágenes (7.2%)
-  - Dígito 4: 1.162 imágenes (5.8%)
-  - Dígito 5: 1.119 imágenes (5.6%)
-  - Dígito 6: 1.079 imágenes (5.4%)
-  - Dígito 8: 1.039 imágenes (5.2%)
-  - Dígito 7: 975 imágenes (4.9%)
-  - Dígito 9: **961 imágenes (4.8%)**
 - **Experimentos Asociados:** `EXP_001`, `EXP_002`, `EXP_003`.
 - **Estado:** Archivo Histórico.
