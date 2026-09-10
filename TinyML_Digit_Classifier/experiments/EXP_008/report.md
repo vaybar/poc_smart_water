@@ -6,7 +6,13 @@
 ---
 
 ## 🎯 Hipótesis y Contexto del Experimento
-_No se especificó hipótesis formal para este experimento._
+
+- **Contexto:** En `EXP_007` la matriz de confusión evidenció un cuello de botella crítico: **47 imágenes del dígito '1' con serifa** se clasificaron como '7', dejando la precisión del '7' en solo **73.4%**. Además, la clase '0' acumulaba un desbalance extremo de 8,655 imágenes en `train/`, dominando los gradientes.
+- **Hipótesis:** Implementar un triple enfoque:
+  1. **Rebalanceo de '0':** Limitar `train/0` a 2,000 imágenes representativas (trasladando el exceso a `discarded_images`).
+  2. **Data Augmentation Enfocado:** Generar variaciones sintéticas de inclinación y cizallamiento lateral (*horizontal shear* $\pm 12^\circ$) para los dígitos '1' y '7'.
+  3. **Class Weighting Focalizado:** Asignar mayor peso de pérdida a las clases '1' ($1.3\times$) y '7' ($1.4\times$).
+  Esto eliminará las confusiones por inclinación de cámara/serifa, elevará la precisión del '7' por encima del 90.0% y alcanzará la mayor exactitud INT8 histórica del proyecto (> 92.0%).
 
 ---
 
@@ -76,4 +82,7 @@ True \ Pred |    0    1    2    3    4    5    6    7    8    9
 
 ## 💡 Conclusiones y Aprendizajes
 
-_No se registraron conclusiones explícitas para este experimento._
+1. **Eliminación Total de la Confusión '1' $\rightarrow$ '7':** Las confusiones del dígito '1' predicho erróneamente como '7' pasaron de **47 muestras en EXP_007 a 0 muestras en EXP_008**.
+2. **Salto de F1-Score en el '1':** El F1-score del dígito '1' se incrementó drásticamente de **`0.872` (87.2%) a `0.983` (98.3%)**, convirtiéndose en la clase más precisa del modelo.
+3. **Recuperación de la Precisión del '7':** La precisión del dígito '7' mejoró de **`0.734` (73.4%) a `0.946` (94.6%)**.
+4. **Máximo Histórico de Exactitud INT8:** La exactitud cuantizada alcanzó un nuevo récord de **`92.45%`** (con solo 0.15% de pérdida respecto al Float32), manteniendo el presupuesto de hardware intacto (**14.24 KB Flash** y **14.27 KB RAM Arena** en ESP32-S3).

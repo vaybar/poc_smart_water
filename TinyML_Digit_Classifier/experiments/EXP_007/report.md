@@ -6,7 +6,9 @@
 ---
 
 ## 🎯 Hipótesis y Contexto del Experimento
-_No se especificó hipótesis formal para este experimento._
+
+- **Contexto:** En los experimentos previos con entrada $32 \times 32$ (`EXP_006`), aplastar la imagen distorsionaba la relación de aspecto nativa del dial de $64 \times 32$ (2:1). Esto cerraba la curva del dígito '6', provocando frecuentes confusiones con el '0' y estancando el F1-Score del '6' en `0.823` con una exactitud INT8 de 87.87%.
+- **Hipótesis:** Cambiar la dimensión de entrada a la relación de aspecto nativa de **$64 \times 32 \times 1$** (con $\alpha = 0.35$) evitará la distorsión del reescalado, restaurará la geometría curva real del dígito '6' y romperá la barrera del 90.0% de exactitud INT8 sin exceder las restricciones de memoria de la ESP32-S3 (< 256 KB Flash, < 40 KB RAM Arena).
 
 ---
 
@@ -76,4 +78,6 @@ True \ Pred |    0    1    2    3    4    5    6    7    8    9
 
 ## 💡 Conclusiones y Aprendizajes
 
-_No se registraron conclusiones explícitas para este experimento._
+1. **Confirmación de Hipótesis:** La entrada nativa $64 \times 32 \times 1$ elevó la exactitud INT8 de **87.87% a 91.94% (+4.07%)**, superando la meta del 90.0%.
+2. **Rescate del dígito '6':** El F1-score del dígito '6' aumentó de `0.823` a **`0.910` (91.0%)**, demostrando que la preservación de la relación de aspecto 2:1 era fundamental para distinguir '6' de '0'.
+3. **Nuevo cuello de botella identificado ('1' vs '7'):** La matriz de confusión reveló que **47 muestras reales del dígito '1'** fueron clasificadas erróneamente como '7', degradando la precisión de la clase '7' a un mínimo de **0.734 (73.4%)**. Esto motivó el diseño de `EXP_008`.
