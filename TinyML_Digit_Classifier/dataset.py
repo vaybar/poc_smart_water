@@ -49,7 +49,73 @@ def load_images_from_folder(folder_path: Path):
                     labels.append(digit)
     return np.array(images, dtype=np.uint8), np.array(labels, dtype=np.int64)
 
-def load_digit_dataset(dataset_path: Path = config.DATASET_DIR):
+def generate_focused_augmentations(
+    images: np.ndarray,
+    labels: np.ndarray,
+    target_classes: list = [1, 7],
+    samples_per_class: dict = {1: 800, 7: 1000},
+    max_shear_deg: float = 12.0
+):
+    """
+    Generates synthetic tilted/sheared and rotated samples specifically
+    for vulnerable classes (e.g. '1' and '7') to enforce structural invariance
+    to camera slant and serifa orientation.
+    """
+    extra_images = []
+    extra_labels = []
+    rng = np.random.default_rng(config.SEED)
+
+    for cls in target_classes:
+        cls_indices = np.where(labels == cls)[0]
+        if len(cls_indices) == 0:
+            continue
+        n_samples = samples_per_class.get(cls, 800)
+        print(f"  Generating {n_samples} focused shear/tilt augmentations for digit '{cls}'...")
+        chosen_indices = rng.choice(cls_indices, size=n_samples, replace=True)
+
+        for idx in chosen_indices:
+            orig = images[idx]
+            h, w = orig.shape[:2]
+
+            # Random shear angle between -max_shear_deg and +max_shear_deg
+            shear_deg = rng.uniform(-max_shear_deg, max_shear_deg)
+            shear = np.tan(np.radians(shear_deg))
+
+            # Random slight rotation (-6 to +6 deg)
+            rot_deg = rng.uniform(-6.0, 6.0)
+
+            # Affine matrix for centered horizontal shear
+            M_shear = np.array([
+                [1.0, shear, -shear * (h / 2.0)],
+                [0.0, 1.0, 0.0]
+            ], dtype=np.float32)
+
+            warped = cv2.warpAffine(orig, M_shear, (w, h), borderMode=cv2.BORDER_REPLICATE)
+
+            # Apply rotation
+            M_rot = cv2.getRotationMatrix2D((w / 2.0, h / 2.0), rot_deg, 1.0)
+            warped = cv2.warpAffine(warped, M_rot, (w, h), borderMode=cv2.BORDER_REPLICATE)
+
+            if len(warped.shape) == 2:
+                warped = np.expand_dims(warped, axis=-1)
+
+            extra_images.append(warped.astype(np.uint8))
+            extra_labels.append(cls)
+
+    if extra_images:
+        extra_images = np.array(extra_images, dtype=np.uint8)
+        extra_labels = np.array(extra_labels, dtype=np.int64)
+        print(f"  --> Added {len(extra_images)} total focused augmented samples to training set.")
+        combined_images = np.concatenate([images, extra_images], axis=0)
+        combined_labels = np.concatenate([labels, extra_labels], axis=0)
+
+        # Shuffle combined set
+        p = rng.permutation(len(combined_images))
+        return combined_images[p], combined_labels[p]
+
+    return images, labels
+
+def load_digit_dataset(dataset_path: Path = config.DATASET_DIR, augment_focused: bool = True):
     """
     Loads dataset from custom directory (organized as 'train/0..9', 'val/0..9', 'test/0..9'
     or flat class subfolders '0'..'9') or loads MNIST as a fallback dataset.
@@ -67,11 +133,11 @@ def load_digit_dataset(dataset_path: Path = config.DATASET_DIR):
     if train_dir.exists() and any((train_dir / str(d)).exists() for d in range(10)):
         print(f"Loading split dataset from: {dataset_path}")
         x_train, y_train = load_images_from_folder(train_dir)
-        print(f"  --> Train set: {len(x_train)} images")
+        print(f"  --> Train set (raw): {len(x_train)} images")
         
         if val_dir.exists() and any((val_dir / str(d)).exists() for d in range(10)):
             x_val, y_val = load_images_from_folder(val_dir)
-            print(f"  --> Val set  : {len(x_val)} images")
+            print(f"  --> Val set        : {len(x_val)} images")
         else:
             # Split train into train/val
             n = len(x_train)
@@ -80,9 +146,14 @@ def load_digit_dataset(dataset_path: Path = config.DATASET_DIR):
             x_val, y_val = x_train[idx[n_tr:]], y_train[idx[n_tr:]]
             x_train, y_train = x_train[idx[:n_tr]], y_train[idx[:n_tr]]
             
+        if augment_focused:
+            print("Applying focused shear/tilt data augmentation for classes 1 and 7...")
+            x_train, y_train = generate_focused_augmentations(x_train, y_train)
+            print(f"  --> Train set (augmented): {len(x_train)} images")
+
         if test_dir.exists() and any((test_dir / str(d)).exists() for d in range(10)):
             x_test, y_test = load_images_from_folder(test_dir)
-            print(f"  --> Test set : {len(x_test)} images")
+            print(f"  --> Test set       : {len(x_test)} images")
         else:
             x_test, y_test = x_val, y_val
             

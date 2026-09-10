@@ -1,0 +1,27 @@
+# Python / Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Datasets and Large Zip files
+dataset_mobilenet.zip
+dataset_mobilenet/discarded_images/
+dataset_digitos_5/
+dataset_digitos_6/
+
+# Models & Checkpoints
+*.keras
+*.tflite
+*.h5
+*.weights.h5
