@@ -48,11 +48,24 @@ def log_experiment(
     if exp_id_override:
         exp_id = exp_id_override
     else:
+        existing_nums = []
         if LOG_CSV_PATH.exists():
             df_existing = pd.read_csv(LOG_CSV_PATH)
-            exp_num = len(df_existing) + 1
-        else:
-            exp_num = 1
+            for item in df_existing["Exp_ID"].dropna():
+                if str(item).startswith("EXP_"):
+                    try:
+                        existing_nums.append(int(str(item).replace("EXP_", "")))
+                    except ValueError:
+                        pass
+        if config.EXPERIMENTS_DIR.exists():
+            for folder in config.EXPERIMENTS_DIR.iterdir():
+                if folder.is_dir() and folder.name.startswith("EXP_"):
+                    try:
+                        existing_nums.append(int(folder.name.replace("EXP_", "")))
+                    except ValueError:
+                        pass
+        max_num = max(existing_nums) if existing_nums else 0
+        exp_num = max_num + 1
         exp_id = f"EXP_{exp_num:03d}"
         
     quant_loss = (float_acc - int8_acc) if float_acc is not None else 0.0
