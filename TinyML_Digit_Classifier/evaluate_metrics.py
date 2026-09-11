@@ -21,7 +21,13 @@ from sklearn.metrics import classification_report, confusion_matrix
 import config
 from dataset import load_digit_dataset
 
-def evaluate_full_metrics(alpha: float = None, epochs: int = config.EPOCHS):
+def evaluate_full_metrics(
+    alpha: float = None,
+    epochs: int = config.EPOCHS,
+    notes: str = None,
+    hypothesis: str = None,
+    conclusions: str = None
+):
     print("=" * 65)
     print("      TinyML Digit Classifier - Comprehensive Model Metrics")
     print("=" * 65)
@@ -143,6 +149,8 @@ def evaluate_full_metrics(alpha: float = None, epochs: int = config.EPOCHS):
         from experiment_logger import log_experiment
         # Estimate arena RAM: ~0.3 of model size + 10KB
         arena_est_kb = (len(tflite_bytes) * 0.3) / 1024.0 + 10.0
+        notes_str = notes if notes is not None else f"Entrenamiento con alpha={detected_alpha}"
+        hypo_str = hypothesis if hypothesis is not None else f"Escalado de capacidad convolucional a alpha={detected_alpha} con entrada 64x32x1"
         exp_id = log_experiment(
             alpha=detected_alpha,
             input_shape=f"{config.IMG_H}x{config.IMG_W}x{config.CHANNELS}",
@@ -155,7 +163,9 @@ def evaluate_full_metrics(alpha: float = None, epochs: int = config.EPOCHS):
             latency_ms=avg_latency,
             classification_report_dict=report_dict,
             confusion_matrix_arr=cm,
-            notes=f"Entrenamiento con alpha={detected_alpha}"
+            notes=notes_str,
+            hypothesis=hypo_str,
+            conclusions=conclusions if conclusions is not None else ""
         )
     except Exception as e:
         print(f"Could not update experiment log: {e}")
@@ -190,6 +200,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate Micro-MobileNet Metrics for TinyML Digit Classifier")
     parser.add_argument("--alpha", type=float, default=None, help="Width multiplier (0.10, 0.25, 0.35, 0.50)")
     parser.add_argument("--epochs", type=int, default=config.EPOCHS, help="Number of training epochs")
+    parser.add_argument("--notes", type=str, default=None, help="Experiment notes")
+    parser.add_argument("--hypothesis", type=str, default=None, help="Experiment hypothesis")
+    parser.add_argument("--conclusions", type=str, default=None, help="Experiment conclusions")
     args = parser.parse_args()
     
-    evaluate_full_metrics(alpha=args.alpha, epochs=args.epochs)
+    evaluate_full_metrics(
+        alpha=args.alpha,
+        epochs=args.epochs,
+        notes=args.notes,
+        hypothesis=args.hypothesis,
+        conclusions=args.conclusions
+    )

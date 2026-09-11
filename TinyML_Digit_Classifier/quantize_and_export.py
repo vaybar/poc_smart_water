@@ -41,6 +41,7 @@ def convert_to_c_header(tflite_bytes: bytes, output_header_path: Path):
         hex_str = ", ".join([f"0x{b:02x}" for b in chunk])
         hex_lines.append("  " + hex_str)
         
+    hex_content = ",\n".join(hex_lines)
     c_content = f"""/*
  * Auto-generated Micro-MobileNet Quantized INT8 Model Header for ESP32-S3 / TinyML
  * Model size: {len(tflite_bytes):,} bytes ({len(tflite_bytes)/1024:.2f} KB)
@@ -60,7 +61,7 @@ def convert_to_c_header(tflite_bytes: bytes, output_header_path: Path):
 #endif
 
 alignas(8) const unsigned char g_digit_model[] PROGMEM = {{
-{",\n".join(hex_lines)}
+{hex_content}
 }};
 
 const unsigned int g_digit_model_len = {len(tflite_bytes)};
