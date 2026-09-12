@@ -20,6 +20,10 @@ def train_model(alpha=config.ALPHA, epochs=config.EPOCHS, batch_size=config.BATC
     print(f"  Training Micro-MobileNet (Alpha={alpha}, Input={config.INPUT_SHAPE})")
     print("=" * 60)
     
+    # Lock random seeds for maximum reproducibility
+    tf.keras.utils.set_random_seed(config.SEED)
+    np.random.seed(config.SEED)
+    
     # 1. Load Data
     (x_train, y_train), (x_val, y_val), (x_test, y_test) = load_digit_dataset()
     

@@ -112,13 +112,13 @@ def analyze_errors(
         
         # Geometry & quality metrics
         cx, cy = compute_center_of_mass(img_2d)
-        dx = abs(cx - 16.0)
-        dy = abs(cy - 16.0)
+        dx = abs(cx - (config.IMG_W / 2.0))
+        dy = abs(cy - (config.IMG_H / 2.0))
         laplacian_var = float(cv2.Laplacian(img_2d, cv2.CV_64F).var())
         
         # Risk assessment
         is_label_noise = (conf >= confidence_threshold)
-        is_cropped = (dx > 6.0 or dy > 6.0)
+        is_cropped = (dx > (config.IMG_W * 0.2) or dy > (config.IMG_H * 0.2))
         
         risk_tag = "LABEL_NOISE_CANDIDATE" if is_label_noise else ("CROPPED/OFF_CENTER" if is_cropped else "CONFUSION")
         
@@ -157,7 +157,31 @@ def analyze_errors(
     # 6. Render Error Mosaic Plot
     plot_error_mosaic(x_test, df_errors, max_mosaic_samples)
     
+    # 7. Save individual PNG images organized by error folder
+    save_misclassified_images(x_test, df_errors)
+    
     return df_errors
+
+def save_misclassified_images(x_test: np.ndarray, df_errors: pd.DataFrame):
+    out_dir = config.MODELS_DIR / "misclassified_images"
+    if out_dir.exists():
+        import shutil
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    
+    for _, row in df_errors.iterrows():
+        idx = int(row["Sample_Idx"])
+        true_l = int(row["True_Label"])
+        pred_l = int(row["Pred_Label"])
+        conf = float(row["Confidence"])
+        
+        pair_dir = out_dir / f"Real_{true_l}_Pred_{pred_l}"
+        pair_dir.mkdir(parents=True, exist_ok=True)
+        
+        img_2d = x_test[idx][:, :, 0]
+        filename = pair_dir / f"idx_{idx:04d}_conf_{int(conf*100)}pct.png"
+        cv2.imwrite(str(filename), img_2d)
+    print(f"--> Exported all misclassified PNG images organized by error pair to: {out_dir}")
 
 def generate_error_markdown_summary(md_path: Path, df_errors: pd.DataFrame, total_samples: int, acc: float):
     total_err = len(df_errors)

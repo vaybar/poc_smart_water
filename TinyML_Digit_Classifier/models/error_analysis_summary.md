@@ -1,8 +1,8 @@
 # 🔍 Reporte de Diagnóstico de Errores y Label Noise
 
 - **Muestras Totales de Prueba:** 3637
-- **Exactitud Global:** 91.94%
-- **Total Errores:** 293 (8.06%)
+- **Exactitud Global:** 27.17%
+- **Total Errores:** 2649 (72.83%)
 
 ---
 
@@ -11,8 +11,8 @@
 | Categoría | Cantidad | % de Errores | Descripción |
 | :--- | :--- | :--- | :--- |
 | **Label Noise Candidates** | **0** | **0.0%** | Predicción errónea con confianza $> 70\%$. Alto riesgo de estar mal etiquetada en el dataset original. |
-| **Recortes Descentrados** | **293** | **100.0%** | Dígito desplazado del centro por $> 6$ píxeles en la segmentación. |
-| **Confusión Estándar** | **0** | **0.0%** | Ambigüedad visual entre dígitos similares. |
+| **Recortes Descentrados** | **0** | **0.0%** | Dígito desplazado del centro por $> 6$ píxeles en la segmentación. |
+| **Confusión Estándar** | **2649** | **100.0%** | Ambigüedad visual entre dígitos similares. |
 
 ---
 
@@ -20,14 +20,14 @@
 
 | Clase Real | Predicción Errónea | Ocurrencias |
 | :--- | :--- | :--- |
-| Dígito '1' | Dígito '7' | **47** |
-| Dígito '0' | Dígito '9' | **23** |
-| Dígito '0' | Dígito '1' | **21** |
-| Dígito '0' | Dígito '3' | **18** |
-| Dígito '0' | Dígito '2' | **16** |
-| Dígito '0' | Dígito '5' | **11** |
-| Dígito '7' | Dígito '1' | **11** |
-| Dígito '0' | Dígito '6' | **10** |
+| Dígito '0' | Dígito '9' | **610** |
+| Dígito '1' | Dígito '0' | **290** |
+| Dígito '2' | Dígito '9' | **164** |
+| Dígito '3' | Dígito '9' | **156** |
+| Dígito '4' | Dígito '0' | **149** |
+| Dígito '5' | Dígito '9' | **146** |
+| Dígito '7' | Dígito '0' | **123** |
+| Dígito '8' | Dígito '9' | **123** |
 
 ---
 
@@ -35,16 +35,16 @@
 
 | Sample Index | Clase Real | Predicho | Confianza Predicción | Varianza Nitidez | Categoría |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `2266` | Dígito '3' | **Dígito '2'** | `23.1%` | `1705.8` | `CROPPED/OFF_CENTER` |
-| `1666` | Dígito '1' | **Dígito '7'** | `22.8%` | `409.07` | `CROPPED/OFF_CENTER` |
-| `1874` | Dígito '1' | **Dígito '0'** | `22.7%` | `573.5` | `CROPPED/OFF_CENTER` |
-| `1764` | Dígito '1' | **Dígito '7'** | `22.6%` | `262.72` | `CROPPED/OFF_CENTER` |
-| `3592` | Dígito '9' | **Dígito '0'** | `22.6%` | `654.74` | `CROPPED/OFF_CENTER` |
-| `1647` | Dígito '1' | **Dígito '7'** | `22.4%` | `263.24` | `CROPPED/OFF_CENTER` |
-| `1661` | Dígito '1' | **Dígito '7'** | `22.4%` | `85.81` | `CROPPED/OFF_CENTER` |
-| `1728` | Dígito '1' | **Dígito '7'** | `22.3%` | `351.69` | `CROPPED/OFF_CENTER` |
-| `3579` | Dígito '9' | **Dígito '2'** | `22.1%` | `638.4` | `CROPPED/OFF_CENTER` |
-| `1562` | Dígito '1' | **Dígito '7'** | `22.0%` | `197.04` | `CROPPED/OFF_CENTER` |
+| `1767` | Dígito '1' | **Dígito '0'** | `23.1%` | `299.57` | `CONFUSION` |
+| `1706` | Dígito '1' | **Dígito '0'** | `23.1%` | `528.36` | `CONFUSION` |
+| `1682` | Dígito '1' | **Dígito '0'** | `23.1%` | `813.37` | `CONFUSION` |
+| `2573` | Dígito '4' | **Dígito '0'** | `23.1%` | `278.92` | `CONFUSION` |
+| `1612` | Dígito '1' | **Dígito '0'** | `23.1%` | `815.15` | `CONFUSION` |
+| `2566` | Dígito '4' | **Dígito '0'** | `23.0%` | `2061.09` | `CONFUSION` |
+| `1831` | Dígito '1' | **Dígito '0'** | `23.0%` | `1377.27` | `CONFUSION` |
+| `2538` | Dígito '4' | **Dígito '0'** | `23.0%` | `1334.71` | `CONFUSION` |
+| `1815` | Dígito '1' | **Dígito '0'** | `23.0%` | `319.74` | `CONFUSION` |
+| `2527` | Dígito '4' | **Dígito '0'** | `23.0%` | `579.76` | `CONFUSION` |
 
 ---
 

@@ -1,6 +1,6 @@
 {
   "exp_id": "EXP_009",
-  "timestamp": "2026-09-11 22:40",
+  "timestamp": "2026-09-11 20:06",
   "hyperparameters": {
     "alpha": 0.5,
     "input_shape": "64x32x1",
@@ -11,89 +11,89 @@
     "float32_accuracy_%": 95.55,
     "int8_accuracy_%": 95.75,
     "quantization_loss_%": -0.2,
-    "latency_ms_per_image": 0.0416,
+    "latency_ms_per_image": 0.042,
     "flash_kb": 16.85,
-    "ram_arena_kb": 15.06,
-    "macro_precision": 0.9577,
-    "macro_recall": 0.9577,
-    "macro_f1": 0.9573,
+    "ram_arena_kb": 15.05,
+    "macro_precision": 0.958,
+    "macro_recall": 0.958,
+    "macro_f1": 0.957,
     "weighted_precision": 0.958,
-    "weighted_recall": 0.9575,
-    "weighted_f1": 0.9574
+    "weighted_recall": 0.958,
+    "weighted_f1": 0.957
   },
   "classification_report": {
     "0": {
-      "precision": 0.9666666666666667,
-      "recall": 0.9942857142857143,
-      "f1-score": 0.9802816901408451,
-      "support": 175.0
+      "precision": 0.967,
+      "recall": 0.994,
+      "f1-score": 0.98,
+      "support": 175
     },
     "1": {
-      "precision": 0.9666666666666667,
-      "recall": 0.9914529914529915,
-      "f1-score": 0.9789029535864979,
-      "support": 234.0
+      "precision": 0.967,
+      "recall": 0.991,
+      "f1-score": 0.979,
+      "support": 234
     },
     "2": {
-      "precision": 0.9761904761904762,
-      "recall": 0.9360730593607306,
-      "f1-score": 0.9557109557109557,
-      "support": 219.0
+      "precision": 0.976,
+      "recall": 0.936,
+      "f1-score": 0.956,
+      "support": 219
     },
     "3": {
-      "precision": 0.9223744292237442,
-      "recall": 0.9758454106280193,
-      "f1-score": 0.9483568075117371,
-      "support": 207.0
+      "precision": 0.922,
+      "recall": 0.976,
+      "f1-score": 0.948,
+      "support": 207
     },
     "4": {
-      "precision": 0.9806763285024155,
-      "recall": 0.9354838709677419,
-      "f1-score": 0.9575471698113207,
-      "support": 217.0
+      "precision": 0.981,
+      "recall": 0.935,
+      "f1-score": 0.958,
+      "support": 217
     },
     "5": {
-      "precision": 0.9508196721311475,
-      "recall": 0.9720670391061452,
-      "f1-score": 0.9613259668508287,
-      "support": 179.0
+      "precision": 0.951,
+      "recall": 0.972,
+      "f1-score": 0.961,
+      "support": 179
     },
     "6": {
-      "precision": 0.9505494505494505,
-      "recall": 0.9719101123595506,
-      "f1-score": 0.9611111111111111,
-      "support": 178.0
+      "precision": 0.951,
+      "recall": 0.972,
+      "f1-score": 0.961,
+      "support": 178
     },
     "7": {
-      "precision": 0.9471153846153846,
-      "recall": 0.9609756097560975,
-      "f1-score": 0.9539951573849879,
-      "support": 205.0
+      "precision": 0.947,
+      "recall": 0.961,
+      "f1-score": 0.954,
+      "support": 205
     },
     "8": {
-      "precision": 0.9832402234636871,
-      "recall": 0.9166666666666666,
-      "f1-score": 0.9487870619946092,
-      "support": 192.0
+      "precision": 0.983,
+      "recall": 0.917,
+      "f1-score": 0.949,
+      "support": 192
     },
     "9": {
-      "precision": 0.9322916666666666,
-      "recall": 0.9226804123711341,
-      "f1-score": 0.927461139896373,
-      "support": 194.0
+      "precision": 0.932,
+      "recall": 0.923,
+      "f1-score": 0.927,
+      "support": 194
     },
     "accuracy": 0.9575,
     "macro avg": {
-      "precision": 0.9576590964676306,
-      "recall": 0.9577440886954791,
-      "f1-score": 0.9573480013999266,
-      "support": 2000.0
+      "precision": 0.958,
+      "recall": 0.958,
+      "f1-score": 0.957,
+      "support": 2000
     },
     "weighted avg": {
-      "precision": 0.9580452673402565,
-      "recall": 0.9575,
-      "f1-score": 0.957414795684717,
-      "support": 2000.0
+      "precision": 0.958,
+      "recall": 0.958,
+      "f1-score": 0.957,
+      "support": 2000
     }
   },
   "confusion_matrix": [
@@ -218,7 +218,7 @@
       179
     ]
   ],
-  "notes": "Entrenamiento con alpha=0.5",
-  "hypothesis": "Escalado de capacidad convolucional a alpha=0.5 con entrada 64x32x1",
-  "conclusions": ""
+  "notes": "Escalado de capacidad a alpha=0.50 (Salto historico a 95.75% Acc INT8)",
+  "hypothesis": "El incremento a alpha=0.50 otorga suficiente capacidad convolucional para resolver las ambiguedades de curvatura en 7 vs 3 y 9 vs 8 sin superar el presupuesto de memoria (< 256 KB Flash y < 40 KB RAM).",
+  "conclusions": "Exito rotundo: se alcanzo 95.75% de exactitud INT8 (+3.30% respecto a EXP_008). La confusion de 7 hacia 3 cayo de 13 muestras a solo 2 muestras. Todas las clases superan el 92.7% de F1-score con solo 16.85 KB de Flash."
 }
