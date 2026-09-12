@@ -4,10 +4,10 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
-# Large binaries and trained model weights (generated via train.py / quantize_and_export.py)
-models/*.keras
-models/*.tflite
-models/*.h5
+# Trained model weights (< 200 KB) tracked for deployment
+# models/*.keras
+# models/*.tflite
+# models/*.h5
 temp_weights*
 
 # OS & IDE
