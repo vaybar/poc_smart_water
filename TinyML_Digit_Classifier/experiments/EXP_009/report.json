@@ -1,6 +1,6 @@
 {
   "exp_id": "EXP_009",
-  "timestamp": "2026-09-11 20:06",
+  "timestamp": "2026-09-12 18:34",
   "hyperparameters": {
     "alpha": 0.5,
     "input_shape": "64x32x1",
@@ -8,217 +8,217 @@
     "batch_size": 32
   },
   "summary_metrics": {
-    "float32_accuracy_%": 95.55,
-    "int8_accuracy_%": 95.75,
-    "quantization_loss_%": -0.2,
-    "latency_ms_per_image": 0.042,
+    "float32_accuracy_%": 94.36,
+    "int8_accuracy_%": 94.45,
+    "quantization_loss_%": -0.08,
+    "latency_ms_per_image": 0.0418,
     "flash_kb": 16.85,
-    "ram_arena_kb": 15.05,
-    "macro_precision": 0.958,
-    "macro_recall": 0.958,
-    "macro_f1": 0.957,
-    "weighted_precision": 0.958,
-    "weighted_recall": 0.958,
-    "weighted_f1": 0.957
+    "ram_arena_kb": 15.06,
+    "macro_precision": 0.9133,
+    "macro_recall": 0.9397,
+    "macro_f1": 0.9255,
+    "weighted_precision": 0.9473,
+    "weighted_recall": 0.9445,
+    "weighted_f1": 0.9453
   },
   "classification_report": {
     "0": {
-      "precision": 0.967,
-      "recall": 0.994,
-      "f1-score": 0.98,
-      "support": 175
+      "precision": 0.9926322839919625,
+      "recall": 0.9524421593830334,
+      "f1-score": 0.9721220072154805,
+      "support": 1556.0
     },
     "1": {
-      "precision": 0.967,
-      "recall": 0.991,
-      "f1-score": 0.979,
-      "support": 234
+      "precision": 0.9405684754521964,
+      "recall": 0.926208651399491,
+      "f1-score": 0.9333333333333333,
+      "support": 393.0
     },
     "2": {
-      "precision": 0.976,
-      "recall": 0.936,
-      "f1-score": 0.956,
-      "support": 219
+      "precision": 0.9664179104477612,
+      "recall": 0.9522058823529411,
+      "f1-score": 0.9592592592592593,
+      "support": 272.0
     },
     "3": {
-      "precision": 0.922,
-      "recall": 0.976,
-      "f1-score": 0.948,
-      "support": 207
+      "precision": 0.9458333333333333,
+      "recall": 0.9380165289256198,
+      "f1-score": 0.941908713692946,
+      "support": 242.0
     },
     "4": {
-      "precision": 0.981,
-      "recall": 0.935,
-      "f1-score": 0.958,
-      "support": 217
+      "precision": 0.9452054794520548,
+      "recall": 0.971830985915493,
+      "f1-score": 0.9583333333333334,
+      "support": 213.0
     },
     "5": {
-      "precision": 0.951,
-      "recall": 0.972,
-      "f1-score": 0.961,
-      "support": 179
+      "precision": 0.9063829787234042,
+      "recall": 0.9681818181818181,
+      "f1-score": 0.9362637362637363,
+      "support": 220.0
     },
     "6": {
-      "precision": 0.951,
-      "recall": 0.972,
-      "f1-score": 0.961,
-      "support": 178
+      "precision": 0.865,
+      "recall": 0.9351351351351351,
+      "f1-score": 0.8987012987012987,
+      "support": 185.0
     },
     "7": {
-      "precision": 0.947,
-      "recall": 0.961,
-      "f1-score": 0.954,
-      "support": 205
+      "precision": 0.8333333333333334,
+      "recall": 0.9217877094972067,
+      "f1-score": 0.8753315649867374,
+      "support": 179.0
     },
     "8": {
-      "precision": 0.983,
-      "recall": 0.917,
-      "f1-score": 0.949,
-      "support": 192
+      "precision": 0.9346733668341709,
+      "recall": 0.9117647058823529,
+      "f1-score": 0.9230769230769231,
+      "support": 204.0
     },
     "9": {
-      "precision": 0.932,
-      "recall": 0.923,
-      "f1-score": 0.927,
-      "support": 194
+      "precision": 0.803030303030303,
+      "recall": 0.9190751445086706,
+      "f1-score": 0.8571428571428571,
+      "support": 173.0
     },
-    "accuracy": 0.9575,
+    "accuracy": 0.9444597195490789,
     "macro avg": {
-      "precision": 0.958,
-      "recall": 0.958,
-      "f1-score": 0.957,
-      "support": 2000
+      "precision": 0.9133077464598518,
+      "recall": 0.9396648721181762,
+      "f1-score": 0.9255473027005905,
+      "support": 3637.0
     },
     "weighted avg": {
-      "precision": 0.958,
-      "recall": 0.958,
-      "f1-score": 0.957,
-      "support": 2000
+      "precision": 0.9473354086940283,
+      "recall": 0.9444597195490789,
+      "f1-score": 0.9452633460058548,
+      "support": 3637.0
     }
   },
   "confusion_matrix": [
     [
-      174,
-      0,
-      0,
-      0,
-      0,
+      1482,
+      11,
       1,
-      0,
-      0,
-      0,
-      0
-    ],
-    [
-      0,
-      232,
-      0,
-      0,
-      0,
       2,
-      0,
-      0,
-      0,
-      0
-    ],
-    [
-      1,
-      1,
-      205,
-      2,
-      0,
-      0,
+      8,
       3,
-      6,
+      11,
+      9,
+      5,
+      24
+    ],
+    [
+      4,
+      364,
+      2,
+      3,
       1,
+      0,
+      0,
+      17,
+      2,
       0
     ],
     [
       0,
       0,
-      1,
-      202,
-      0,
-      2,
-      0,
-      2,
-      0,
-      0
-    ],
-    [
-      0,
-      1,
-      0,
-      0,
-      203,
-      0,
+      259,
       3,
       0,
-      1,
-      9
+      7,
+      0,
+      2,
+      0,
+      1
     ],
     [
-      0,
-      0,
       0,
       4,
       0,
-      174,
-      0,
+      227,
       1,
-      0,
-      0
-    ],
-    [
       2,
-      2,
-      0,
-      0,
-      1,
-      0,
-      173,
-      0,
-      0,
-      0
-    ],
-    [
-      1,
-      3,
-      2,
-      2,
-      0,
-      0,
-      0,
-      197,
-      0,
-      0
-    ],
-    [
-      2,
-      0,
-      2,
-      4,
-      0,
       1,
       3,
       0,
-      176,
       4
     ],
     [
       0,
-      1,
       0,
-      5,
       3,
-      3,
+      0,
+      207,
+      0,
       0,
       2,
+      0,
+      1
+    ],
+    [
       1,
-      179
+      0,
+      0,
+      1,
+      0,
+      213,
+      5,
+      0,
+      0,
+      0
+    ],
+    [
+      3,
+      0,
+      0,
+      0,
+      0,
+      2,
+      173,
+      0,
+      4,
+      3
+    ],
+    [
+      0,
+      7,
+      2,
+      2,
+      1,
+      1,
+      0,
+      165,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      1,
+      0,
+      1,
+      0,
+      9,
+      0,
+      186,
+      5
+    ],
+    [
+      2,
+      0,
+      0,
+      2,
+      0,
+      7,
+      1,
+      0,
+      2,
+      159
     ]
   ],
-  "notes": "Escalado de capacidad a alpha=0.50 (Salto historico a 95.75% Acc INT8)",
-  "hypothesis": "El incremento a alpha=0.50 otorga suficiente capacidad convolucional para resolver las ambiguedades de curvatura en 7 vs 3 y 9 vs 8 sin superar el presupuesto de memoria (< 256 KB Flash y < 40 KB RAM).",
-  "conclusions": "Exito rotundo: se alcanzo 95.75% de exactitud INT8 (+3.30% respecto a EXP_008). La confusion de 7 hacia 3 cayo de 13 muestras a solo 2 muestras. Todas las clases superan el 92.7% de F1-score con solo 16.85 KB de Flash."
+  "notes": "EXP_009 (Re-ejecución determinista): alpha=0.50 con dataset limpio y rebalanceado",
+  "hypothesis": "Escalado de capacidad convolucional a alpha=0.5 con entrada 64x32x1",
+  "conclusions": ""
 }

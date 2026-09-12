@@ -1,12 +1,12 @@
 # 🔬 Reporte Detallado de Experimento - `EXP_009`
 
-- **Fecha / Hora:** 2026-09-11 20:06
-- **Notas / Cambios:** Escalado de capacidad a alpha=0.50 (Salto historico a 95.75% Acc INT8)
+- **Fecha / Hora:** 2026-09-12 18:34
+- **Notas / Cambios:** EXP_009 (Re-ejecución determinista): alpha=0.50 con dataset limpio y rebalanceado
 
 ---
 
 ## 🎯 Hipótesis y Contexto del Experimento
-El incremento a alpha=0.50 otorga suficiente capacidad convolucional para resolver las ambiguedades de curvatura en 7 vs 3 y 9 vs 8 sin superar el presupuesto de memoria (< 256 KB Flash y < 40 KB RAM).
+Escalado de capacidad convolucional a alpha=0.5 con entrada 64x32x1
 
 ---
 
@@ -25,14 +25,14 @@ El incremento a alpha=0.50 otorga suficiente capacidad convolucional para resolv
 
 | Métrica | Valor | Objetivo TinyML |
 | :--- | :--- | :--- |
-| **Exactitud Float32** | `95.55%` | N/A |
-| **Exactitud INT8** | **`95.75%`** | **> 85.0%** |
-| **Pérdida por Cuantización** | `-0.2%` | **< 1.0%** |
-| **Latencia Promedio por Imagen** | `0.042 ms` | **< 5.0 ms** |
-| **Macro F1-Score** | `0.957` | Max |
-| **Weighted F1-Score** | `0.957` | Max |
+| **Exactitud Float32** | `94.36%` | N/A |
+| **Exactitud INT8** | **`94.45%`** | **> 85.0%** |
+| **Pérdida por Cuantización** | `-0.08%` | **< 1.0%** |
+| **Latencia Promedio por Imagen** | `0.0418 ms` | **< 5.0 ms** |
+| **Macro F1-Score** | `0.9255` | Max |
+| **Weighted F1-Score** | `0.9453` | Max |
 | **Tamaño en Flash (TFLite INT8)** | **`16.85 KB`** | **< 256 KB** |
-| **RAM Estimada (Tensor Arena)** | **`15.05 KB`** | **< 40 KB** |
+| **RAM Estimada (Tensor Arena)** | **`15.06 KB`** | **< 40 KB** |
 
 ---
 
@@ -40,18 +40,18 @@ El incremento a alpha=0.50 otorga suficiente capacidad convolucional para resolv
 
 | Clase | Precision | Recall | F1-Score | Muestras (Support) |
 | :--- | :--- | :--- | :--- | :--- |
-| Dígito '0' | 0.967 | 0.994 | **0.980** | 175 |
-| Dígito '1' | 0.967 | 0.991 | **0.979** | 234 |
-| Dígito '2' | 0.976 | 0.936 | **0.956** | 219 |
-| Dígito '3' | 0.922 | 0.976 | **0.948** | 207 |
-| Dígito '4' | 0.981 | 0.935 | **0.958** | 217 |
-| Dígito '5' | 0.951 | 0.972 | **0.961** | 179 |
-| Dígito '6' | 0.951 | 0.972 | **0.961** | 178 |
-| Dígito '7' | 0.947 | 0.961 | **0.954** | 205 |
-| Dígito '8' | 0.983 | 0.917 | **0.949** | 192 |
-| Dígito '9' | 0.932 | 0.923 | **0.927** | 194 |
-| **macro avg** | 0.958 | 0.958 | **0.957** | 2000 |
-| **weighted avg** | 0.958 | 0.958 | **0.957** | 2000 |
+| Dígito '0' | 0.993 | 0.952 | **0.972** | 1556.0 |
+| Dígito '1' | 0.941 | 0.926 | **0.933** | 393.0 |
+| Dígito '2' | 0.966 | 0.952 | **0.959** | 272.0 |
+| Dígito '3' | 0.946 | 0.938 | **0.942** | 242.0 |
+| Dígito '4' | 0.945 | 0.972 | **0.958** | 213.0 |
+| Dígito '5' | 0.906 | 0.968 | **0.936** | 220.0 |
+| Dígito '6' | 0.865 | 0.935 | **0.899** | 185.0 |
+| Dígito '7' | 0.833 | 0.922 | **0.875** | 179.0 |
+| Dígito '8' | 0.935 | 0.912 | **0.923** | 204.0 |
+| Dígito '9' | 0.803 | 0.919 | **0.857** | 173.0 |
+| **macro avg** | 0.913 | 0.940 | **0.926** | 3637.0 |
+| **weighted avg** | 0.947 | 0.944 | **0.945** | 3637.0 |
 
 ---
 
@@ -60,24 +60,20 @@ El incremento a alpha=0.50 otorga suficiente capacidad convolucional para resolv
 ```
 True \ Pred |    0    1    2    3    4    5    6    7    8    9
 ----------------------------------------------------------------
- Digit '0'  |  174    0    0    0    0    1    0    0    0    0
- Digit '1'  |    0  232    0    0    0    2    0    0    0    0
- Digit '2'  |    1    1  205    2    0    0    3    6    1    0
- Digit '3'  |    0    0    1  202    0    2    0    2    0    0
- Digit '4'  |    0    1    0    0  203    0    3    0    1    9
- Digit '5'  |    0    0    0    4    0  174    0    1    0    0
- Digit '6'  |    2    2    0    0    1    0  173    0    0    0
- Digit '7'  |    1    3    2    2    0    0    0  197    0    0
- Digit '8'  |    2    0    2    4    0    1    3    0  176    4
- Digit '9'  |    0    1    0    5    3    3    0    2    1  179
+ Digit '0'  | 1482   11    1    2    8    3   11    9    5   24
+ Digit '1'  |    4  364    2    3    1    0    0   17    2    0
+ Digit '2'  |    0    0  259    3    0    7    0    2    0    1
+ Digit '3'  |    0    4    0  227    1    2    1    3    0    4
+ Digit '4'  |    0    0    3    0  207    0    0    2    0    1
+ Digit '5'  |    1    0    0    1    0  213    5    0    0    0
+ Digit '6'  |    3    0    0    0    0    2  173    0    4    3
+ Digit '7'  |    0    7    2    2    1    1    0  165    0    1
+ Digit '8'  |    1    1    1    0    1    0    9    0  186    5
+ Digit '9'  |    2    0    0    2    0    7    1    0    2  159
 ```
-
-### Visualización Gráfica
-
-![Matriz de Confusión](confusion_matrix.png)
 
 ---
 
 ## 💡 Conclusiones y Aprendizajes
 
-Exito rotundo: se alcanzo 95.75% de exactitud INT8 (+3.30% respecto a EXP_008). La confusion de 7 hacia 3 cayo de 13 muestras a solo 2 muestras. Todas las clases superan el 92.7% de F1-score con solo 16.85 KB de Flash.
+_No se registraron conclusiones explícitas para este experimento._
