@@ -44,8 +44,9 @@ The trade-off between classification accuracy and embedded hardware resource con
 
 ---
 
-## 🛠️ Experimental Tooling & Scripts
+## 🛠️ Experimental Tooling & Documentation
 
+* **[MOBILENET_VS_MICRO_MOBILENET.md](MOBILENET_VS_MICRO_MOBILENET.md):** In-depth technical comparison between standard MobileNet (V2 / V3-Small) and custom Micro-MobileNet (architecture, memory footprint, Tensor Arena SRAM, INT8 quantization efficiency).
 * **[train.py](train.py):** Training pipeline with configurable width multiplier $\alpha$, epochs, batch size, random seeds (`SEED=42`), and class weighting.
 * **[quantize_and_export.py](quantize_and_export.py):** Full INT8 quantization with representative dataset calibration and C byte array export (`digit_model_quantized.h`).
 * **[experiment_logger.py](experiment_logger.py):** Automated logging to [BITACORA_EXPERIMENTOS.md](BITACORA_EXPERIMENTOS.md) and [experiments_log.csv](experiments_log.csv).
