@@ -31,14 +31,8 @@ def train_model(alpha=config.ALPHA, epochs=config.EPOCHS, batch_size=config.BATC
     classes = np.unique(y_train)
     weights = compute_class_weight('balanced', classes=classes, y=y_train)
     class_weight_dict = dict(zip(classes, weights))
-    
-    # Focused weighting to solve the 1 vs 7 confusion boundary
-    if 1 in class_weight_dict:
-        class_weight_dict[1] *= 1.3
-    if 7 in class_weight_dict:
-        class_weight_dict[7] *= 1.4
         
-    print(f"Class weights computed for {len(classes)} classes (with focused 1 vs 7 weighting):")
+    print(f"Balanced class weights computed for {len(classes)} classes:")
     for c in sorted(class_weight_dict.keys()):
         print(f"  Class '{c}': {class_weight_dict[c]:.4f}")
     

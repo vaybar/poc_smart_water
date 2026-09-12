@@ -25,7 +25,7 @@ IMG_W = 32                        # Width  = 32 px
 CHANNELS = 1                      # Grayscale input (1 channel vs 3)
 INPUT_SHAPE = (IMG_H, IMG_W, CHANNELS)
 NUM_CLASSES = 10                  # Digits 0 through 9
-ALPHA = 0.50                      # Width multiplier for Micro-MobileNet scaling
+ALPHA = 0.75                      # Width multiplier for Micro-MobileNet scaling (EXP_010)
 
 # Dataset Settings
 # Points to dataset_mobilenet in parent directory if available, or local data folder
@@ -34,7 +34,7 @@ DATASET_DIR = PARENT_DATASET if PARENT_DATASET.exists() else BASE_DIR / "data"
 
 # Hyperparameters
 BATCH_SIZE = 32
-EPOCHS = 30
+EPOCHS = 35
 INITIAL_LR = 1e-3
 MIN_LR = 1e-6
 VAL_SPLIT = 0.2
