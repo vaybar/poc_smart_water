@@ -7,5 +7,4 @@ EXP_005,2026-09-08 18:59,0.25,32x32x1,30,32,87.13,87.79,-0.66,12.85,13.86,Entren
 EXP_006,2026-09-08 20:20,0.35,32x32x1,30,32,87.79,87.87,-0.08,14.24,14.27,Entrenamiento con alpha=0.35,0.8536,0.8824,0.024,experiments/EXP_006/report.md
 EXP_007,2026-09-08 21:26,0.35,64x32x1,30,32,91.89,91.94,-0.05,14.24,14.27,Entrenamiento con alpha=0.35,0.899,0.9206,0.041,experiments/EXP_007/report.md
 EXP_008,2026-09-10 22:43,0.35,64x32x1,30,32,92.6,92.45,0.15,14.24,14.27,Rebalanceo + Augmentation Shear 1/7 + Class Weighting,0.9234,0.9243,0.0431,experiments/EXP_008/report.md
-EXP_009,2026-09-11 20:06,0.5,64x32x1,30,32,95.55,95.75,-0.2,16.85,15.05,Escalado de capacidad a alpha=0.50 (Salto historico a 95.75% Acc INT8),0.957,0.957,0.042,experiments/EXP_009/report.md
-EXP_010,2026-09-12 18:34,0.5,64x32x1,30,32,94.36,94.45,-0.08,16.85,15.06,EXP_009 (Re-ejecución determinista): alpha=0.50 con dataset limpio y rebalanceado,0.9255,0.9453,0.042,experiments/EXP_010/report.md
+EXP_009,2026-09-12 18:34,0.5,64x32x1,30,32,94.36,94.45,-0.08,16.85,15.06,Escalado de capacidad a alpha=0.50 con dataset limpio y rebalanceado,0.9255,0.9453,0.042,experiments/EXP_009/report.md
