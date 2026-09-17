@@ -30,6 +30,7 @@ def log_segmentation_experiment(
     polygon_iou: float,
     int8_size_kb: float,
     tensor_arena_kb: float,
+    angle_error_deg: float = 0.0,
     latency_ms: float | None = None,
     notes: str = "",
     hypothesis: str = "",
@@ -83,6 +84,7 @@ def log_segmentation_experiment(
         "Val_Loss": round(val_loss, 5),
         "Corner_MAE_px": round(corner_mae_px, 2),
         "Polygon_IoU": round(polygon_iou, 4),
+        "Angle_Error_deg": round(angle_error_deg, 2),
         "Flash_INT8_KB": round(int8_size_kb, 2),
         "Tensor_Arena_KB": round(tensor_arena_kb, 2),
         "Latency_ESP32_ms": round(latency_ms, 1) if latency_ms else "N/A",
@@ -119,6 +121,7 @@ def log_segmentation_experiment(
 - **Val Loss (Smooth L1 / MSE):** `{val_loss:.5f}`
 - **Error Medio de Esquina (MAE):** `{corner_mae_px:.2f} px` (sobre 128x128)
 - **Intersección sobre Unión (IoU Cuadrilátero):** `{polygon_iou * 100:.2f}%`
+- **Error Angular de Orientación:** `{angle_error_deg:.2f}°`
 
 ## 3. Huella de Recursos en ESP32 Clásico
 - **Flash ROM (INT8):** `{int8_size_kb:.2f} KB` (Presupuesto máximo: 80 KB)
@@ -155,15 +158,17 @@ Este documento registra sistemáticamente cada experimento realizado para la loc
 
 ## Tabla Histórica de Experimentos
 
-| Exp ID | Fecha | Alpha | Input Shape | Val Loss | Corner MAE (px) | Polygon IoU | Flash INT8 (KB) | Tensor Arena (KB) | Notas / Hallazgos |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| Exp ID | Fecha | Alpha | Input Shape | Val Loss | Corner MAE (px) | Polygon IoU | Error Angular (°) | Flash INT8 (KB) | Tensor Arena (KB) | Notas / Hallazgos |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
 """
     for _, row in df.iterrows():
+        ang_str = f"{row['Angle_Error_deg']:.1f}°" if "Angle_Error_deg" in row and pd.notna(row["Angle_Error_deg"]) else "N/A"
         bitacora_text += (
             f"| **{row['Exp_ID']}** | {row['Timestamp']} | {row['Alpha']} | {row['Input_Shape']} | "
             f"{row['Val_Loss']:.4f} | {row['Corner_MAE_px']:.1f} px | {row['Polygon_IoU']*100:.1f}% | "
-            f"{row['Flash_INT8_KB']:.1f} KB | {row['Tensor_Arena_KB']:.1f} KB | {row['Notes']} |\n"
+            f"{ang_str} | {row['Flash_INT8_KB']:.1f} KB | {row['Tensor_Arena_KB']:.1f} KB | {row['Notes']} |\n"
         )
+
 
     bitacora_text += """
 ---

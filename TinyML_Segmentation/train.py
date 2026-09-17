@@ -124,12 +124,13 @@ def train_segmenter(
         val_loss=float(history.history["val_loss"][-1]),
         corner_mae_px=metrics["corner_mae_px"],
         polygon_iou=metrics["mean_polygon_iou"],
+        angle_error_deg=metrics["mean_angle_error_deg"],
         int8_size_kb=estimated_int8_kb,
         tensor_arena_kb=estimated_arena_kb,
         latency_ms=estimated_latency_ms,
         notes=notes,
         hypothesis=hypothesis,
-        conclusions=f"Corner MAE: {metrics['corner_mae_px']:.1f}px, IoU: {metrics['mean_polygon_iou']*100:.1f}%. Fits in {estimated_int8_kb:.1f}KB Flash."
+        conclusions=f"Corner MAE: {metrics['corner_mae_px']:.1f}px, IoU: {metrics['mean_polygon_iou']*100:.1f}%, Angle Error: {metrics['mean_angle_error_deg']:.1f}°. Fits in {estimated_int8_kb:.1f}KB Flash."
     )
 
     print(f"\n[SUCCESS] Experiment {exp_id} completed and logged to BITACORA_EXPERIMENTOS.md.")
