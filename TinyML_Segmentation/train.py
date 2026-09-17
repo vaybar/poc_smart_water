@@ -18,7 +18,7 @@ import tensorflow as tf
 import config
 from model_builder import build_micro_corner_regressor
 from dataset import load_paired_dataset, get_representative_dataset
-from evaluate_metrics import evaluate_predictions
+from evaluate_metrics import evaluate_predictions, plot_corner_error_scatter, plot_worst_cases_grid
 from experiment_logger import log_segmentation_experiment
 
 def train_segmenter(
@@ -133,7 +133,13 @@ def train_segmenter(
         conclusions=f"Corner MAE: {metrics['corner_mae_px']:.1f}px, IoU: {metrics['mean_polygon_iou']*100:.1f}%, Angle Error: {metrics['mean_angle_error_deg']:.1f}°. Fits in {estimated_int8_kb:.1f}KB Flash."
     )
 
-    print(f"\n[SUCCESS] Experiment {exp_id} completed and logged to BITACORA_EXPERIMENTOS.md.")
+    # 7. Generate Visual Diagnostic Plots
+    exp_dir = config.EXPERIMENTS_DIR / exp_id
+    plot_corner_error_scatter(y_val, val_preds, save_path=exp_dir / "corner_error_scatter.png", img_size=config.THUMB_W)
+    plot_worst_cases_grid(X_val, y_val, val_preds, save_path=exp_dir / "worst_cases_grid.png", top_k=9, img_size=config.THUMB_W)
+
+    print(f"\n[SUCCESS] Experiment {exp_id} completed. Visual diagnostic plots saved to {exp_dir}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train Micro-Corner-Regressor")
