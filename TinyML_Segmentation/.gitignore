@@ -1,0 +1,14 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Debug visual diagnostics
+debug/
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
