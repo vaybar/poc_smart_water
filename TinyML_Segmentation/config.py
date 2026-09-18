@@ -41,7 +41,7 @@ STRIP_H = DIGIT_H
 STRIP_W_6 = DEFAULT_NUM_DIGITS * DIGIT_W  # 192 px for 6 digits
 
 # Model Architecture Parameters
-ALPHA = 0.50                        # Width multiplier for Micro-Pose-CNN (0.25, 0.50, 0.75)
+ALPHA = 0.75                        # Width multiplier for Micro-Pose-CNN (0.25, 0.50, 0.75)
 NUM_KEYPOINTS = 4                   # 4 corners: Top-Left, Top-Right, Bottom-Right, Bottom-Left
 NUM_COORDINATES = NUM_KEYPOINTS * 2 # 8 coordinates (x1, y1, ..., x4, y4)
 
@@ -51,12 +51,13 @@ IMAGES_DIR = DATASET_ROOT / "images"
 LABELS_DIR = DATASET_ROOT / "labels"
 
 # Training Hyperparameters
-BATCH_SIZE = 32
-EPOCHS = 40
+BATCH_SIZE = 16
+EPOCHS = 80
 INITIAL_LR = 1e-3
 MIN_LR = 1e-6
 VAL_SPLIT = 0.15
 SEED = 42
+
 
 # Export Paths
 FLOAT_MODEL_PATH = MODELS_DIR / "micro_corner_regressor.keras"

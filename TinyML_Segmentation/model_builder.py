@@ -93,19 +93,23 @@ def build_micro_corner_regressor(
     # Stage 4: 8x8 -> 4x4
     x = depthwise_separable_block(x, filters=filters[4], stride=2, name_prefix="ds_stage4")
 
-    # Step 4: Head with Global Average Pooling (eliminates dense layer memory)
-    x = layers.GlobalAveragePooling2D(name="gap")(x)
+    # Step 4: Spatial Feature Head (Preserves 2D grid coordinates x, y)
+    x = layers.Conv2D(16, kernel_size=1, padding="same", use_bias=False, name="spatial_proj_conv")(x)
+    x = layers.BatchNormalization(name="spatial_proj_bn")(x)
+    x = layers.ReLU(max_value=6.0, name="spatial_proj_relu6")(x)
+    x = layers.Flatten(name="spatial_flatten")(x)
+
+    x = layers.Dense(128, activation="relu", name="head_dense")(x)
 
     if dropout_rate > 0:
         x = layers.Dropout(dropout_rate, name="head_dropout")(x)
-
-    x = layers.Dense(32, activation="relu", name="head_dense")(x)
 
     # Output: 8 normalized coordinates in [0.0, 1.0] via Sigmoid
     outputs = layers.Dense(num_coords, activation="sigmoid", name="corners_output")(x)
 
     model = models.Model(inputs=inputs, outputs=outputs, name=f"MicroCornerRegressor_a{int(alpha*100):02d}")
     return model
+
 
 if __name__ == "__main__":
     m = build_micro_corner_regressor(alpha=0.5)

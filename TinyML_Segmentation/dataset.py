@@ -14,9 +14,42 @@ import cv2
 import tensorflow as tf
 import config
 
-def load_paired_dataset(split: str = "train") -> tuple[np.ndarray, np.ndarray]:
+def apply_photometric_augmentation(img_gray: np.ndarray) -> np.ndarray:
+    """
+    Applies photometric data augmentation (brightness, contrast, noise, blur)
+    which does not alter spatial keypoint coordinates.
+    """
+    aug = img_gray.astype(np.float32)
+
+    # 1. Random Brightness Jitter (-25 to +25)
+    brightness_shift = np.random.uniform(-25.0, 25.0)
+    aug += brightness_shift
+
+    # 2. Random Contrast Factor (0.7 to 1.3)
+    contrast_factor = np.random.uniform(0.7, 1.3)
+    mean_val = np.mean(aug)
+    aug = (aug - mean_val) * contrast_factor + mean_val
+
+    # 3. Random Gaussian Noise
+    if np.random.rand() > 0.5:
+        noise = np.random.normal(0, np.random.uniform(3.0, 10.0), size=aug.shape)
+        aug += noise
+
+    # 4. Random Subtle Blur
+    if np.random.rand() > 0.7:
+        ksize = np.random.choice([3, 5])
+        aug = cv2.GaussianBlur(aug, (ksize, ksize), 0)
+
+    return np.clip(aug, 0, 255).astype(np.uint8)
+
+def load_paired_dataset(split: str = "train", augment: bool = False, augment_factor: int = 2) -> tuple[np.ndarray, np.ndarray]:
     """
     Loads all paired images and 4-corner keypoints for a given split ('train', 'val', 'test').
+
+    Args:
+        split: Dataset split ('train', 'val', 'test').
+        augment: If True (recommended for training), multiplies dataset with photometric variations.
+        augment_factor: Number of augmented copies per training image.
 
     Returns:
         images: (N, 128, 128, 1) uint8 numpy array.
@@ -57,10 +90,17 @@ def load_paired_dataset(split: str = "train") -> tuple[np.ndarray, np.ndarray]:
 
             # Resize to thumbnail (128, 128)
             resized = cv2.resize(img, (config.THUMB_W, config.THUMB_H), interpolation=cv2.INTER_AREA)
-            resized_3d = np.expand_dims(resized, axis=-1) # (128, 128, 1)
 
-            images.append(resized_3d)
+            # Original sample
+            images.append(np.expand_dims(resized, axis=-1))
             targets.append(kpts)
+
+            # Augmented copies for training
+            if augment and split == "train":
+                for _ in range(augment_factor):
+                    aug_img = apply_photometric_augmentation(resized)
+                    images.append(np.expand_dims(aug_img, axis=-1))
+                    targets.append(kpts)
 
         except Exception:
             continue
@@ -68,6 +108,7 @@ def load_paired_dataset(split: str = "train") -> tuple[np.ndarray, np.ndarray]:
     X = np.array(images, dtype=np.uint8)
     y = np.array(targets, dtype=np.float32)
     return X, y
+
 
 def get_representative_dataset(num_samples: int = 150):
     """

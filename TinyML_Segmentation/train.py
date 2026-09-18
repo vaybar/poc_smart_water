@@ -36,14 +36,14 @@ def train_segmenter(
 
     # 1. Load Data
     print("\n[1/5] Loading datasets...")
-    X_train, y_train = load_paired_dataset("train")
-    X_val, y_val = load_paired_dataset("val")
+    X_train, y_train = load_paired_dataset("train", augment=True, augment_factor=2)
+    X_val, y_val = load_paired_dataset("val", augment=False)
 
     if len(X_train) == 0:
         print("[ERROR] No training samples found. Please run audit_dataset.py first.")
         return
 
-    print(f"  Loaded {len(X_train)} training samples and {len(X_val)} validation samples.")
+    print(f"  Loaded {len(X_train)} training samples (with augmentation) and {len(X_val)} validation samples.")
 
     # 2. Build Model
     print("\n[2/5] Building model...")
@@ -56,7 +56,7 @@ def train_segmenter(
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-        loss=tf.keras.losses.Huber(delta=0.05), # Huber loss is more robust to label noise
+        loss="mse", # Mean Squared Error heavily penalizes pixel coordinate deviations
         metrics=["mae"]
     )
     model.summary()
@@ -72,17 +72,18 @@ def train_segmenter(
         tf.keras.callbacks.ReduceLROnPlateau(
             monitor="val_loss",
             factor=0.5,
-            patience=4,
+            patience=5,
             min_lr=config.MIN_LR,
             verbose=1
         ),
         tf.keras.callbacks.EarlyStopping(
             monitor="val_loss",
-            patience=10,
+            patience=15,
             restore_best_weights=True,
             verbose=1
         )
     ]
+
 
     # 4. Train Model
     print("\n[3/5] Starting training...")
