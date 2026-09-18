@@ -1,0 +1,2 @@
+Exp_ID,Timestamp,Alpha,Input_Shape,Epochs,Batch_Size,Train_Loss,Val_Loss,Corner_MAE_px,Polygon_IoU,Angle_Error_deg,Flash_INT8_KB,Tensor_Arena_KB,Latency_ESP32_ms,Hypothesis,Notes,Conclusions
+EXP_001,2026-09-18 18:51,0.5,128x128x1,26,32,0.0031,0.00492,13.53,0.1665,13.19,3.89,24.5,38.2,Micro-Pose model locates rotated dial on MCU,Micro-Corner-Regressor training,"Corner MAE: 13.5px, IoU: 16.7%, Angle Error: 13.2°. Fits in 3.9KB Flash."

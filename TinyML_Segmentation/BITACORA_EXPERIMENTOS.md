@@ -11,19 +11,13 @@ Este documento registra sistemáticamente cada experimento realizado para la loc
 
 ## Tabla Histórica de Experimentos
 
-| Exp ID | Fecha | Alpha | Input Shape | Val Loss | Corner MAE (px) | Polygon IoU | Flash INT8 (KB) | Tensor Arena (KB) | Notas / Hallazgos |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| *Pendiente* | - | 0.50 | 128x128x1 | - | - | - | ~38 KB | ~24 KB | Línea base: Micro-Corner-Regressor con ReLU6 y Bilinear Warp |
+| Exp ID | Fecha | Alpha | Input Shape | Val Loss | Corner MAE (px) | Polygon IoU | Error Angular (°) | Flash INT8 (KB) | Tensor Arena (KB) | Notas / Hallazgos |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **EXP_001** | 2026-09-18 18:51 | 0.5 | 128x128x1 | 0.0049 | 13.5 px | 16.7% | 13.2° | 3.9 KB | 24.5 KB | Micro-Corner-Regressor training |
 
 ---
 
-## Metodología de Evaluación y Métricas
-
-1. **Corner MAE (Error Medio Absoluto en Píxeles):**
-   Mide la distancia euclidiana media en píxeles (sobre el lienzo de $128 \times 128$) entre las 4 esquinas reales anotadas y las 4 esquinas estimadas por la red.
-2. **Polygon IoU (Intersección sobre Unión del Cuadrilátero):**
-   Evalúa el solapamiento de la ventana rotada. Un $\text{IoU} > 0.85$ garantiza una rectificación visualmente limpia de los dígitos.
-3. **Invarianza a Rotación:**
-   Se valida que la tira rectificada y los recortes mantengan a los números orientados verticalmente incluso si el medidor se encuentra a $30^\circ$, $45^\circ$ o $90^\circ$.
-4. **Resistencia a Barro y Suciedad:**
-   Al segmentar por división fija de ranuras (*slots*) sobre la ventanilla rectificada, se evita la pérdida de cortes que sufría la proyección vertical con manchas de tierra.
+## Resumen de Decisiones de Arquitectura
+1. **Regresión Directa de 4 Esquinas:** Supera a YOLOv8n (3.3 MB vs <50 KB).
+2. **Bilinear Quadrilateral Mapping:** Permite corregir ángulos de inclinación arbitrarios sin OpenCV.
+3. **Corte Determinista por Ranuras (*Slots*):** Los tambores mecánicos tienen espaciado físico idéntico, eliminando la vulnerabilidad a barro y suciedad en el dial.

@@ -1,0 +1,19 @@
+{
+    "Exp_ID": "EXP_001",
+    "Timestamp": "2026-09-18 18:51",
+    "Alpha": 0.5,
+    "Input_Shape": "128x128x1",
+    "Epochs": 26,
+    "Batch_Size": 32,
+    "Train_Loss": 0.0031,
+    "Val_Loss": 0.00492,
+    "Corner_MAE_px": 13.53,
+    "Polygon_IoU": 0.1665,
+    "Angle_Error_deg": 13.19,
+    "Flash_INT8_KB": 3.89,
+    "Tensor_Arena_KB": 24.5,
+    "Latency_ESP32_ms": 38.2,
+    "Hypothesis": "Micro-Pose model locates rotated dial on MCU",
+    "Notes": "Micro-Corner-Regressor training",
+    "Conclusions": "Corner MAE: 13.5px, IoU: 16.7%, Angle Error: 13.2\u00b0. Fits in 3.9KB Flash."
+}
