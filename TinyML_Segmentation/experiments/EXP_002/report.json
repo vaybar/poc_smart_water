@@ -1,0 +1,19 @@
+{
+    "Exp_ID": "EXP_002",
+    "Timestamp": "2026-09-18 19:36",
+    "Alpha": 0.75,
+    "Input_Shape": "128x128x1",
+    "Epochs": 34,
+    "Batch_Size": 16,
+    "Train_Loss": 0.00243,
+    "Val_Loss": 0.01461,
+    "Corner_MAE_px": 10.48,
+    "Polygon_IoU": 0.2717,
+    "Angle_Error_deg": 18.18,
+    "Flash_INT8_KB": 38.9,
+    "Tensor_Arena_KB": 24.5,
+    "Latency_ESP32_ms": 382.4,
+    "Hypothesis": "Preservar mapa 4x4 espacial y usar MSE impedir\u00e1 el colapso a la media y elevar\u00e1 el IoU.",
+    "Notes": "EXP_002: Cabeza espacial 2D sin GAP + loss MSE + Data Augmentation",
+    "Conclusions": "Corner MAE: 10.5px, IoU: 27.2%, Angle Error: 18.2\u00b0. Fits in 38.9KB Flash."
+}

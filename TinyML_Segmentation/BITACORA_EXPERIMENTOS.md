@@ -14,6 +14,7 @@ Este documento registra sistemáticamente cada experimento realizado para la loc
 | Exp ID | Fecha | Alpha | Input Shape | Val Loss | Corner MAE (px) | Polygon IoU | Error Angular (°) | Flash INT8 (KB) | Tensor Arena (KB) | Notas / Hallazgos |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
 | **EXP_001** | 2026-09-18 18:51 | 0.5 | 128x128x1 | 0.0049 | 13.5 px | 16.7% | 13.2° | 3.9 KB | 24.5 KB | Micro-Corner-Regressor training |
+| **EXP_002** | 2026-09-18 19:36 | 0.75 | 128x128x1 | 0.0146 | 10.5 px | 27.2% | 18.2° | 38.9 KB | 24.5 KB | EXP_002: Cabeza espacial 2D sin GAP + loss MSE + Data Augmentation |
 
 ---
 
