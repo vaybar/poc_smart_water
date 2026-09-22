@@ -16,6 +16,7 @@ Este documento registra sistemáticamente cada experimento realizado para la loc
 | **EXP_001** | 2026-09-18 18:51 | 0.5 | 128x128x1 | 0.0049 | 13.5 px | 16.7% | 13.2° | 3.9 KB | 24.5 KB | Micro-Corner-Regressor training |
 | **EXP_002** | 2026-09-18 19:36 | 0.75 | 128x128x1 | 0.0146 | 10.5 px | 27.2% | 18.2° | 38.9 KB | 24.5 KB | EXP_002: Cabeza espacial 2D sin GAP + loss MSE + Data Augmentation |
 | **EXP_003** | 2026-09-22 18:44 | 0.75 | 128x128x1 | 0.0276 | 14.9 px | 15.8% | 28.7° | 38.9 KB | 24.5 KB | EXP_004: Modelo EXP_002 con dataset masivo (imagenes reales convertidas) |
+| **EXP_004** | 2026-09-22 21:36 | 0.75 | 128x128x1 | 0.0019 | 13.1 px | 28.1% | 35.1° | 54.8 KB | 24.5 KB | EXP_004: MicroCornerRegressor V2 con resolucion 8x8 y skip connection multiescala |
 
 ---
 

@@ -1,0 +1,19 @@
+{
+    "Exp_ID": "EXP_004",
+    "Timestamp": "2026-09-22 21:36",
+    "Alpha": 0.75,
+    "Input_Shape": "128x128x1",
+    "Epochs": 48,
+    "Batch_Size": 32,
+    "Train_Loss": 0.00097,
+    "Val_Loss": 0.00188,
+    "Corner_MAE_px": 13.12,
+    "Polygon_IoU": 0.2809,
+    "Angle_Error_deg": 35.09,
+    "Flash_INT8_KB": 54.76,
+    "Tensor_Arena_KB": 24.5,
+    "Latency_ESP32_ms": 538.3,
+    "Hypothesis": "Preservar resolucion 8x8 y fusionar bordes multiescala reducira el MAE < 5px y elevara el IoU > 60%",
+    "Notes": "EXP_004: MicroCornerRegressor V2 con resolucion 8x8 y skip connection multiescala",
+    "Conclusions": "Corner MAE: 13.1px, IoU: 28.1%, Angle Error: 35.1\u00b0. Fits in 54.8KB Flash."
+}
