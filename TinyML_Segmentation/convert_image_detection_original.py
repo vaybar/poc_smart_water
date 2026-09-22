@@ -1,38 +1,8 @@
 """
-convert_image_detection_original.py
+convert_image_detection_original.py - Converts raw dataset to YOLO/TinyML_Segmentation format
 
-Convierte el dataset contenido en 'image_detection_original' al formato procesable YOLO / TinyML_Segmentation.
-
-Estructura de origen esperada:
-    image_detection_original/
-    ├── train/
-    │   ├── train_img/                 *.png (32,707 imágenes)
-    │   ├── train_seg_label/           *.png (máscaras binarias)
-    │   └── train_class_label_CSV.csv  etiquetas y flags de condición
-    └── test/
-        ├── test_img/                  *.png (13,391 imágenes)
-        ├── test_seg_label/            *.png (máscaras binarias)
-        └── test_class_label_CSV.csv   etiquetas y flags de condición
-
-Estructura de salida (formato procesable YOLO pose / keypoints):
-    water_meter/
-    ├── images/
-    │   ├── train/
-    │   ├── val/
-    │   └── test/
-    ├── labels/
-    │   ├── train/
-    │   ├── val/
-    │   └── test/
-    ├── water_meter.yaml
-    └── dataset_stats.csv
-
-Uso básico:
-    python convert_image_detection_original.py
-
-Opciones:
-    python convert_image_detection_original.py --max-samples 1000  # probar con muestra pequeña
-    python convert_image_detection_original.py --output-dir water_meter  # procesar dataset completo
+Reads raw images and segmentation masks from 'image_detection_original/' (in project root or relative path),
+extracts bounding box and 4 corner keypoints, normalizes coordinates, and exports to 'water_meter/' structure.
 """
 
 import argparse
@@ -44,6 +14,7 @@ import cv2
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import config
 
 CSV_COLUMNS = [
     "filename",
@@ -61,7 +32,6 @@ def load_label_csv(csv_path: Path) -> pd.DataFrame:
     if df.shape[1] == len(CSV_COLUMNS):
         df.columns = CSV_COLUMNS
     else:
-        # Fallback if header exists or column count differs
         df = pd.read_csv(csv_path)
         if len(df.columns) >= 8:
             df = df.iloc[:, :8]
@@ -142,6 +112,9 @@ def process_dataset(
     max_samples: int = None,
     seed: int = 42
 ):
+    source_dir = source_dir.resolve()
+    output_dir = output_dir.resolve()
+
     print("=" * 65)
     print("  CONVERTING IMAGE_DETECTION_ORIGINAL TO WATER_METER FORMAT")
     print(f"  Source Directory: {source_dir}")
@@ -253,7 +226,7 @@ def process_dataset(
     df_stats = pd.DataFrame(stats_records)
     df_stats.to_csv(output_dir / "dataset_stats.csv", index=False)
 
-    yaml_content = f"""path: {output_dir.resolve().as_posix()}
+    yaml_content = f"""path: {output_dir.as_posix()}
 train: images/train
 val: images/val
 test: images/test
@@ -277,9 +250,15 @@ kpt_shape: [4, 2]
     print(f"  Output Stats : {output_dir / 'dataset_stats.csv'}")
 
 if __name__ == "__main__":
+    default_source = config.ROOT_DIR / "image_detection_original"
+    if not default_source.exists() and Path("image_detection_original").exists():
+        default_source = Path("image_detection_original")
+
+    default_output = config.DATASET_ROOT
+
     parser = argparse.ArgumentParser(description="Convert image_detection_original to water_meter format")
-    parser.add_argument("--source-dir", type=Path, default=Path("image_detection_original"), help="Source dataset path")
-    parser.add_argument("--output-dir", type=Path, default=Path("water_meter"), help="Output dataset path")
+    parser.add_argument("--source-dir", type=Path, default=default_source, help="Source dataset path")
+    parser.add_argument("--output-dir", type=Path, default=default_output, help="Output dataset path")
     parser.add_argument("--val-ratio", type=float, default=0.2, help="Validation set ratio from train split")
     parser.add_argument("--max-samples", type=int, default=None, help="Optional sample limit for dry-run testing")
     args = parser.parse_args()
