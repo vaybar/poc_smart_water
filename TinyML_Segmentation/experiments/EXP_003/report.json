@@ -1,0 +1,19 @@
+{
+    "Exp_ID": "EXP_003",
+    "Timestamp": "2026-09-22 18:44",
+    "Alpha": 0.75,
+    "Input_Shape": "128x128x1",
+    "Epochs": 20,
+    "Batch_Size": 32,
+    "Train_Loss": 0.00703,
+    "Val_Loss": 0.02759,
+    "Corner_MAE_px": 14.92,
+    "Polygon_IoU": 0.1582,
+    "Angle_Error_deg": 28.66,
+    "Flash_INT8_KB": 38.9,
+    "Tensor_Arena_KB": 24.5,
+    "Latency_ESP32_ms": 382.4,
+    "Hypothesis": "Entrenar con miles de muestras reales eliminara el overfitting del EXP_002 sin perder precision espacial",
+    "Notes": "EXP_004: Modelo EXP_002 con dataset masivo (imagenes reales convertidas)",
+    "Conclusions": "Corner MAE: 14.9px, IoU: 15.8%, Angle Error: 28.7\u00b0. Fits in 38.9KB Flash."
+}
