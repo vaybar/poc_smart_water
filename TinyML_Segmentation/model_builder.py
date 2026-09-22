@@ -84,22 +84,33 @@ def build_micro_corner_regressor(
     # Stage 1: 64x64 -> 32x32
     x = depthwise_separable_block(x, filters=filters[1], stride=2, name_prefix="ds_stage1")
 
-    # Stage 2: 32x32 -> 16x16
+    # Stage 2: 32x32 -> 16x16 (captures fine edge & corner details)
     x = depthwise_separable_block(x, filters=filters[2], stride=2, name_prefix="ds_stage2")
+    skip_16x16 = x
 
     # Stage 3: 16x16 -> 8x8
     x = depthwise_separable_block(x, filters=filters[3], stride=2, name_prefix="ds_stage3")
 
-    # Stage 4: 8x8 -> 4x4
-    x = depthwise_separable_block(x, filters=filters[4], stride=2, name_prefix="ds_stage4")
+    # Stage 4: 8x8 -> 8x8 (stride 1 preserves 8x8 spatial resolution instead of 4x4 bottleneck)
+    x = depthwise_separable_block(x, filters=filters[4], stride=1, name_prefix="ds_stage4")
+    deep_8x8 = x
 
-    # Step 4: Spatial Feature Head (Preserves 2D grid coordinates x, y)
-    x = layers.Conv2D(16, kernel_size=1, padding="same", use_bias=False, name="spatial_proj_conv")(x)
+    # Step 4: Multi-Scale Skip Connection (16x16 -> 8x8 via stride-2 pooling)
+    skip_proj = layers.AveragePooling2D(pool_size=2, strides=2, padding="same", name="skip_pool")(skip_16x16)
+    skip_proj = layers.Conv2D(16, kernel_size=1, padding="same", use_bias=False, name="skip_conv")(skip_proj)
+    skip_proj = layers.BatchNormalization(name="skip_bn")(skip_proj)
+    skip_proj = layers.ReLU(max_value=6.0, name="skip_relu6")(skip_proj)
+
+    # Step 5: Multi-Scale Fusion & Spatial Projection (8x8)
+    fusion = layers.Concatenate(name="multiscale_concat")([deep_8x8, skip_proj])
+
+    # Spatial projection to 12 channels (8x8x12 = 768 spatial features)
+    x = layers.Conv2D(12, kernel_size=1, padding="same", use_bias=False, name="spatial_proj_conv")(fusion)
     x = layers.BatchNormalization(name="spatial_proj_bn")(x)
     x = layers.ReLU(max_value=6.0, name="spatial_proj_relu6")(x)
     x = layers.Flatten(name="spatial_flatten")(x)
 
-    x = layers.Dense(128, activation="relu", name="head_dense")(x)
+    x = layers.Dense(64, activation="relu", name="head_dense")(x)
 
     if dropout_rate > 0:
         x = layers.Dropout(dropout_rate, name="head_dropout")(x)
@@ -107,12 +118,12 @@ def build_micro_corner_regressor(
     # Output: 8 normalized coordinates in [0.0, 1.0] via Sigmoid
     outputs = layers.Dense(num_coords, activation="sigmoid", name="corners_output")(x)
 
-    model = models.Model(inputs=inputs, outputs=outputs, name=f"MicroCornerRegressor_a{int(alpha*100):02d}")
+    model = models.Model(inputs=inputs, outputs=outputs, name=f"MicroCornerRegressor_V2_a{int(alpha*100):02d}")
     return model
 
 
 if __name__ == "__main__":
-    m = build_micro_corner_regressor(alpha=0.5)
+    m = build_micro_corner_regressor(alpha=0.75)
     m.summary()
     print(f"\nTotal Parameters: {m.count_params():,}")
     print(f"Estimated INT8 Flash Size: ~{m.count_params() / 1024:.2f} KB")

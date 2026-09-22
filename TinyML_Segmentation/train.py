@@ -26,8 +26,8 @@ def train_segmenter(
     epochs: int = config.EPOCHS,
     batch_size: int = config.BATCH_SIZE,
     learning_rate: float = config.INITIAL_LR,
-    notes: str = "Baseline Micro-Corner-Regressor training",
-    hypothesis: str = "Direct 4-corner regression on 128x128 grayscale allows robust orientation correction within ESP32 budget."
+    notes: str = "EXP_004: MicroCornerRegressor V2 con resolucion 8x8 y skip connection multiescala",
+    hypothesis: str = "Preservar resolucion 8x8 y fusionar bordes multiescala reducira el MAE < 5px y elevara el IoU > 60%."
 ):
     print("=" * 65)
     print("  TRAINING MICRO-CORNER-REGRESSOR (TinyML_Segmentation)")
@@ -56,7 +56,7 @@ def train_segmenter(
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-        loss="mse", # Mean Squared Error heavily penalizes pixel coordinate deviations
+        loss=tf.keras.losses.Huber(delta=0.02), # Smooth L1 / Huber loss maintains solid gradients for sub-10px errors
         metrics=["mae"]
     )
     model.summary()
@@ -72,13 +72,13 @@ def train_segmenter(
         tf.keras.callbacks.ReduceLROnPlateau(
             monitor="val_loss",
             factor=0.5,
-            patience=5,
+            patience=6,
             min_lr=config.MIN_LR,
             verbose=1
         ),
         tf.keras.callbacks.EarlyStopping(
             monitor="val_loss",
-            patience=15,
+            patience=20,
             restore_best_weights=True,
             verbose=1
         )
@@ -148,8 +148,8 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=config.EPOCHS, help="Number of epochs")
     parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE, help="Batch size")
     parser.add_argument("--lr", type=float, default=config.INITIAL_LR, help="Initial learning rate")
-    parser.add_argument("--notes", type=str, default="Micro-Corner-Regressor training", help="Notes for bitácora")
-    parser.add_argument("--hypothesis", type=str, default="Micro-Pose model locates rotated dial on MCU", help="Hypothesis for bitácora")
+    parser.add_argument("--notes", type=str, default="EXP_004: MicroCornerRegressor V2 con resolucion 8x8 y skip connection multiescala", help="Notes for bitácora")
+    parser.add_argument("--hypothesis", type=str, default="Preservar resolucion 8x8 y fusionar bordes multiescala reducira el MAE < 5px y elevara el IoU > 60%", help="Hypothesis for bitácora")
     args = parser.parse_args()
 
     train_segmenter(
