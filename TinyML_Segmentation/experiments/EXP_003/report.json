@@ -1,0 +1,19 @@
+{
+    "Exp_ID": "EXP_003",
+    "Timestamp": "2026-09-22 12:52",
+    "Alpha": 0.75,
+    "Input_Shape": "128x128x1",
+    "Epochs": 19,
+    "Batch_Size": 16,
+    "Train_Loss": 0.0075,
+    "Val_Loss": 0.01372,
+    "Corner_MAE_px": 10.3,
+    "Polygon_IoU": 0.2686,
+    "Angle_Error_deg": 15.52,
+    "Flash_INT8_KB": 38.9,
+    "Tensor_Arena_KB": 24.5,
+    "Latency_ESP32_ms": 382.4,
+    "Hypothesis": "La aumentacion afin de esquinas y traslacion eliminara el overfitting del EXP_002 y mejorara IoU > 70%",
+    "Notes": "EXP_003: Aumentacion afin geometrica (2000 muestras/epoca) + cabeza 2D",
+    "Conclusions": "Corner MAE: 10.3px, IoU: 26.9%, Angle Error: 15.5\u00b0. Fits in 38.9KB Flash."
+}
