@@ -1,0 +1,19 @@
+{
+    "Exp_ID": "EXP_005",
+    "Timestamp": "2026-09-22 22:30",
+    "Alpha": 0.75,
+    "Input_Shape": "128x128x1",
+    "Epochs": 80,
+    "Batch_Size": 32,
+    "Train_Loss": 0.0007,
+    "Val_Loss": 0.0012,
+    "Corner_MAE_px": 8.82,
+    "Polygon_IoU": 0.3685,
+    "Angle_Error_deg": 23.55,
+    "Flash_INT8_KB": 54.76,
+    "Tensor_Arena_KB": 24.5,
+    "Latency_ESP32_ms": 538.3,
+    "Hypothesis": "Alinear canonicamente el borde largo (TL->TR) eliminara la contradiccion de 90 grados y permitira convergencia con MAE < 5px y IoU > 60%",
+    "Notes": "EXP_005: MicroCornerRegressor V2 con dataset canonico alineado por eje mayor",
+    "Conclusions": "Corner MAE: 8.8px, IoU: 36.9%, Angle Error: 23.6\u00b0. Fits in 54.8KB Flash."
+}
