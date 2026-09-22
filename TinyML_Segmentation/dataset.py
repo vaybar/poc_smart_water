@@ -42,70 +42,14 @@ def apply_photometric_augmentation(img_gray: np.ndarray) -> np.ndarray:
 
     return np.clip(aug, 0, 255).astype(np.uint8)
 
-def apply_affine_geometric_augmentation(
-    img_gray: np.ndarray,
-    kpts_norm: list[float] | np.ndarray,
-    max_rotation_deg: float = 25.0,
-    max_translation_px: float = 8.0,
-    scale_range: tuple[float, float] = (0.88, 1.12)
-) -> tuple[np.ndarray, list[float]] | None:
-    """
-    Applies simultaneous 2D affine geometric transformation (rotation, scale, translation)
-    to both the image and the 4 keypoint coordinates.
-    """
-    h, w = img_gray.shape[:2]
-    center_x, center_y = w / 2.0, h / 2.0
-
-    # Random parameters
-    angle = np.random.uniform(-max_rotation_deg, max_rotation_deg)
-    scale = np.random.uniform(scale_range[0], scale_range[1])
-    dx = np.random.uniform(-max_translation_px, max_translation_px)
-    dy = np.random.uniform(-max_translation_px, max_translation_px)
-
-    # Affine matrix
-    M = cv2.getRotationMatrix2D((center_x, center_y), angle, scale)
-    M[0, 2] += dx
-    M[1, 2] += dy
-
-    # Warp image
-    aug_img = cv2.warpAffine(img_gray, M, (w, h), borderMode=cv2.BORDER_REPLICATE)
-
-    # Transform 4 keypoints (x_i, y_i)
-    kpts_arr = np.array(kpts_norm, dtype=np.float32).reshape(4, 2)
-    kpts_px = kpts_arr.copy()
-    kpts_px[:, 0] *= float(w)
-    kpts_px[:, 1] *= float(h)
-
-    # Homogeneous 2D coordinates [x, y, 1]
-    ones = np.ones((4, 1), dtype=np.float32)
-    pts_homo = np.hstack([kpts_px, ones]) # (4, 3)
-
-    # Transform points: P' = M * P^T -> (2, 4) -> (4, 2)
-    transformed_pts = (M @ pts_homo.T).T
-
-    # Normalize back to [0, 1]
-    new_kpts_norm = transformed_pts.copy()
-    new_kpts_norm[:, 0] /= float(w)
-    new_kpts_norm[:, 1] /= float(h)
-
-    # Check bounds safety (keep all points inside [0.01, 0.99])
-    if np.any(new_kpts_norm < 0.01) or np.any(new_kpts_norm > 0.99):
-        # Reject out-of-bound transformation
-        return None
-
-    # Apply photometric augmentation on top of warped image
-    aug_img_photo = apply_photometric_augmentation(aug_img)
-
-    return aug_img_photo, new_kpts_norm.flatten().tolist()
-
-def load_paired_dataset(split: str = "train", augment: bool = False, augment_factor: int = 4) -> tuple[np.ndarray, np.ndarray]:
+def load_paired_dataset(split: str = "train", augment: bool = False, augment_factor: int = 2) -> tuple[np.ndarray, np.ndarray]:
     """
     Loads all paired images and 4-corner keypoints for a given split ('train', 'val', 'test').
 
     Args:
         split: Dataset split ('train', 'val', 'test').
-        augment: If True (recommended for training), multiplies dataset with affine & photometric variations.
-        augment_factor: Number of augmented copies per training image (e.g. 4 -> 5x dataset size).
+        augment: If True (recommended for training), multiplies dataset with photometric variations.
+        augment_factor: Number of augmented copies per training image.
 
     Returns:
         images: (N, 128, 128, 1) uint8 numpy array.
@@ -151,23 +95,15 @@ def load_paired_dataset(split: str = "train", augment: bool = False, augment_fac
             images.append(np.expand_dims(resized, axis=-1))
             targets.append(kpts)
 
-            # Augmented copies for training (Affine Geometric + Photometric)
+            # Augmented copies for training
             if augment and split == "train":
                 for _ in range(augment_factor):
-                    res = apply_affine_geometric_augmentation(resized, kpts)
-                    if res is not None:
-                        aug_img, aug_kpts = res
-                        images.append(np.expand_dims(aug_img, axis=-1))
-                        targets.append(aug_kpts)
-                    else:
-                        # Fallback to photometric only if geometric went out of bounds
-                        aug_img = apply_photometric_augmentation(resized)
-                        images.append(np.expand_dims(aug_img, axis=-1))
-                        targets.append(kpts)
+                    aug_img = apply_photometric_augmentation(resized)
+                    images.append(np.expand_dims(aug_img, axis=-1))
+                    targets.append(kpts)
 
         except Exception:
             continue
-
 
     X = np.array(images, dtype=np.uint8)
     y = np.array(targets, dtype=np.float32)

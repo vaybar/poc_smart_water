@@ -26,18 +26,17 @@ def train_segmenter(
     epochs: int = config.EPOCHS,
     batch_size: int = config.BATCH_SIZE,
     learning_rate: float = config.INITIAL_LR,
-    augment_factor: int = 4,
     notes: str = "Baseline Micro-Corner-Regressor training",
     hypothesis: str = "Direct 4-corner regression on 128x128 grayscale allows robust orientation correction within ESP32 budget."
 ):
     print("=" * 65)
     print("  TRAINING MICRO-CORNER-REGRESSOR (TinyML_Segmentation)")
-    print(f"  Alpha: {alpha} | Epochs: {epochs} | Batch Size: {batch_size} | LR: {learning_rate} | Augment Factor: {augment_factor}")
+    print(f"  Alpha: {alpha} | Epochs: {epochs} | Batch Size: {batch_size} | LR: {learning_rate}")
     print("=" * 65)
 
     # 1. Load Data
     print("\n[1/5] Loading datasets...")
-    X_train, y_train = load_paired_dataset("train", augment=True, augment_factor=augment_factor)
+    X_train, y_train = load_paired_dataset("train", augment=True, augment_factor=2)
     X_val, y_val = load_paired_dataset("val", augment=False)
 
     if len(X_train) == 0:
@@ -149,7 +148,6 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=config.EPOCHS, help="Number of epochs")
     parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE, help="Batch size")
     parser.add_argument("--lr", type=float, default=config.INITIAL_LR, help="Initial learning rate")
-    parser.add_argument("--augment-factor", type=int, default=4, help="Augmentation factor per training image (e.g. 4 -> 5x dataset size)")
     parser.add_argument("--notes", type=str, default="Micro-Corner-Regressor training", help="Notes for bitácora")
     parser.add_argument("--hypothesis", type=str, default="Micro-Pose model locates rotated dial on MCU", help="Hypothesis for bitácora")
     args = parser.parse_args()
@@ -159,7 +157,6 @@ if __name__ == "__main__":
         epochs=args.epochs,
         batch_size=args.batch_size,
         learning_rate=args.lr,
-        augment_factor=args.augment_factor,
         notes=args.notes,
         hypothesis=args.hypothesis
     )
