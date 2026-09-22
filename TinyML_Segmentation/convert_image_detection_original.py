@@ -43,19 +43,54 @@ def load_label_csv(csv_path: Path) -> pd.DataFrame:
 
 def sort_quad_vertices(pts: np.ndarray) -> np.ndarray:
     """
-    Sorts 4 corner points into consistent order:
-    TL (top-left), TR (top-right), BR (bottom-right), BL (bottom-left)
+    Sorts 4 corners of an elongated dial box canonically:
+    - Edge 0 -> 1 is ALWAYS the long edge (reading direction: TL -> TR).
+    - Edge 0 -> 3 is ALWAYS the short edge (thickness: TL -> BL).
+    - Order is strictly TL, TR, BR, BL in clockwise direction.
     """
-    ordered = np.zeros((4, 2), dtype=np.float32)
-    s = pts.sum(axis=1) # x + y
-    d = np.diff(pts, axis=1)[:, 0] # y - x
+    # 1. Order points around centroid in clockwise circular order
+    center = pts.mean(axis=0)
+    angles = np.arctan2(pts[:, 1] - center[1], pts[:, 0] - center[0])
+    pts_cw = pts[np.argsort(angles)]
 
-    ordered[0] = pts[np.argmin(s)]   # TL (smallest x+y)
-    ordered[2] = pts[np.argmax(s)]   # BR (largest x+y)
-    ordered[1] = pts[np.argmin(d)]   # TR (smallest y-x)
-    ordered[3] = pts[np.argmax(d)]   # BL (largest y-x)
+    # 2. Find which pair of opposing edges are the long edges
+    edges = [pts_cw[(i + 1) % 4] - pts_cw[i] for i in range(4)]
+    lengths = [np.linalg.norm(e) for e in edges]
 
-    return ordered
+    if (lengths[0] + lengths[2]) > (lengths[1] + lengths[3]):
+        long_edge_candidates = [(0, 1), (2, 3)]
+    else:
+        long_edge_candidates = [(1, 2), (3, 0)]
+
+    # 3. Choose the top long edge (smaller average y, higher in image)
+    def edge_score(pair):
+        pA, pB = pts_cw[pair[0]], pts_cw[pair[1]]
+        return (pA[1] + pB[1]) / 2.0
+
+    top_pair = min(long_edge_candidates, key=edge_score)
+    idxA, idxB = top_pair
+    pA, pB = pts_cw[idxA], pts_cw[idxB]
+
+    # 4. Along the top long edge, reading direction goes left-to-right
+    if abs(pA[0] - pB[0]) > 1e-2:
+        if pA[0] < pB[0]:
+            tl_idx, tr_idx = idxA, idxB
+        else:
+            tl_idx, tr_idx = idxB, idxA
+    else:
+        if pA[1] < pB[1]:
+            tl_idx, tr_idx = idxA, idxB
+        else:
+            tl_idx, tr_idx = idxB, idxA
+
+    # 5. Connect remaining two points (BR, BL)
+    neighbors_tl = [(tl_idx - 1) % 4, (tl_idx + 1) % 4]
+    bl_idx = [n for n in neighbors_tl if n != tr_idx][0]
+
+    neighbors_tr = [(tr_idx - 1) % 4, (tr_idx + 1) % 4]
+    br_idx = [n for n in neighbors_tr if n != tl_idx][0]
+
+    return np.array([pts_cw[tl_idx], pts_cw[tr_idx], pts_cw[br_idx], pts_cw[bl_idx]], dtype=np.float32)
 
 def extract_bbox_and_keypoints(mask: np.ndarray, img_w: int, img_h: int):
     """

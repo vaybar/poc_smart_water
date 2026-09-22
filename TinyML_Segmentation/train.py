@@ -26,8 +26,8 @@ def train_segmenter(
     epochs: int = config.EPOCHS,
     batch_size: int = config.BATCH_SIZE,
     learning_rate: float = config.INITIAL_LR,
-    notes: str = "EXP_004: MicroCornerRegressor V2 con resolucion 8x8 y skip connection multiescala",
-    hypothesis: str = "Preservar resolucion 8x8 y fusionar bordes multiescala reducira el MAE < 5px y elevara el IoU > 60%."
+    notes: str = "EXP_005: MicroCornerRegressor V2 con dataset canonico alineado por eje mayor",
+    hypothesis: str = "Alinear canonicamente el borde largo (TL->TR) eliminara la contradiccion de 90 grados y permitira convergencia con MAE < 5px y IoU > 60%."
 ):
     print("=" * 65)
     print("  TRAINING MICRO-CORNER-REGRESSOR (TinyML_Segmentation)")
@@ -148,8 +148,8 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=config.EPOCHS, help="Number of epochs")
     parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE, help="Batch size")
     parser.add_argument("--lr", type=float, default=config.INITIAL_LR, help="Initial learning rate")
-    parser.add_argument("--notes", type=str, default="EXP_004: MicroCornerRegressor V2 con resolucion 8x8 y skip connection multiescala", help="Notes for bitácora")
-    parser.add_argument("--hypothesis", type=str, default="Preservar resolucion 8x8 y fusionar bordes multiescala reducira el MAE < 5px y elevara el IoU > 60%", help="Hypothesis for bitácora")
+    parser.add_argument("--notes", type=str, default="EXP_005: MicroCornerRegressor V2 con dataset canonico alineado por eje mayor", help="Notes for bitácora")
+    parser.add_argument("--hypothesis", type=str, default="Alinear canonicamente el borde largo (TL->TR) eliminara la contradiccion de 90 grados y permitira convergencia con MAE < 5px y IoU > 60%", help="Hypothesis for bitácora")
     args = parser.parse_args()
 
     train_segmenter(
