@@ -21,13 +21,34 @@ from dataset import load_paired_dataset, get_representative_dataset
 from evaluate_metrics import evaluate_predictions, plot_corner_error_scatter, plot_worst_cases_grid
 from experiment_logger import log_segmentation_experiment
 
+def custom_parallelogram_loss(y_true, y_pred):
+    """
+    Combines Huber loss on corner coordinates with a soft orthogonality penalty (u . v)
+    to incentivize 90-degree corners between long reading edge u and short edge v.
+    """
+    huber = tf.keras.losses.huber(y_true, y_pred, delta=0.02)
+
+    # Extract vectors u (P1 - P0) and v (P3 - P0)
+    p0 = y_pred[:, 0:2]
+    p1 = y_pred[:, 2:4]
+    p3 = y_pred[:, 6:8]
+
+    u = p1 - p0
+    v = p3 - p0
+
+    # Dot product u . v (0 for orthogonal vectors)
+    dot_prod = tf.reduce_sum(u * v, axis=-1)
+    ortho_penalty = tf.reduce_mean(tf.square(dot_prod))
+
+    return huber + 0.1 * ortho_penalty
+
 def train_segmenter(
     alpha: float = config.ALPHA,
     epochs: int = config.EPOCHS,
     batch_size: int = config.BATCH_SIZE,
     learning_rate: float = config.INITIAL_LR,
-    notes: str = "EXP_005: MicroCornerRegressor V2 con dataset canonico alineado por eje mayor",
-    hypothesis: str = "Alinear canonicamente el borde largo (TL->TR) eliminara la contradiccion de 90 grados y permitira convergencia con MAE < 5px y IoU > 60%."
+    notes: str = "EXP_006: MicroCornerRegressor V3 con cabeza de paralelogramo vectorial (C+u+v) y loss ortogonal",
+    hypothesis: str = "Predecir centroide y vectores directores (u, v) garantizara paralelismo absoluto, llevando el IoU > 60% y MAE < 4.5px."
 ):
     print("=" * 65)
     print("  TRAINING MICRO-CORNER-REGRESSOR (TinyML_Segmentation)")
@@ -56,7 +77,7 @@ def train_segmenter(
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-        loss=tf.keras.losses.Huber(delta=0.02), # Smooth L1 / Huber loss maintains solid gradients for sub-10px errors
+        loss=custom_parallelogram_loss,
         metrics=["mae"]
     )
     model.summary()
@@ -148,8 +169,8 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=config.EPOCHS, help="Number of epochs")
     parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE, help="Batch size")
     parser.add_argument("--lr", type=float, default=config.INITIAL_LR, help="Initial learning rate")
-    parser.add_argument("--notes", type=str, default="EXP_005: MicroCornerRegressor V2 con dataset canonico alineado por eje mayor", help="Notes for bitácora")
-    parser.add_argument("--hypothesis", type=str, default="Alinear canonicamente el borde largo (TL->TR) eliminara la contradiccion de 90 grados y permitira convergencia con MAE < 5px y IoU > 60%", help="Hypothesis for bitácora")
+    parser.add_argument("--notes", type=str, default="EXP_006: MicroCornerRegressor V3 con cabeza de paralelogramo vectorial (C+u+v) y loss ortogonal", help="Notes for bitácora")
+    parser.add_argument("--hypothesis", type=str, default="Predecir centroide y vectores directores (u, v) garantizara paralelismo absoluto, llevando el IoU > 60% y MAE < 4.5px.", help="Hypothesis for bitácora")
     args = parser.parse_args()
 
     train_segmenter(

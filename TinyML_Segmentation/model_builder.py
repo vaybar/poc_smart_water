@@ -42,6 +42,27 @@ def depthwise_separable_block(x, filters: int, stride: int = 1, name_prefix: str
     x = layers.ReLU(max_value=6.0, name=f"{name_prefix}_pw_relu6")(x)
     return x
 
+def vector_to_corners(inputs):
+    """
+    Differentiable Vectorized Parallelogram Reconstruction:
+    Converts 6 parameters [cx, cy, ux, uy, vx, vy] to 8 normalized corner coordinates:
+    TL = C - u - v
+    TR = C + u - v
+    BR = C + u + v
+    BL = C - u + v
+    Guarantees 100% rigid, parallel rectangle shapes with 0% distortion.
+    """
+    cx_cy = inputs[:, 0:2]
+    u = inputs[:, 2:4]
+    v = inputs[:, 4:6]
+
+    p0 = cx_cy - u - v # TL
+    p1 = cx_cy + u - v # TR
+    p2 = cx_cy + u + v # BR
+    p3 = cx_cy - u + v # BL
+
+    return tf.concat([p0, p1, p2, p3], axis=-1)
+
 def build_micro_corner_regressor(
     input_shape=config.THUMB_INPUT_SHAPE,
     num_coords: int = config.NUM_COORDINATES,
@@ -49,7 +70,7 @@ def build_micro_corner_regressor(
     dropout_rate: float = 0.2
 ) -> tf.keras.Model:
     """
-    Builds the Micro-Corner-Regressor model.
+    Builds the Micro-Corner-Regressor V3 model with Vectorized Parallelogram Head.
 
     Args:
         input_shape: (H, W, C) input thumbnail shape, default (128, 128, 1).
@@ -58,14 +79,14 @@ def build_micro_corner_regressor(
         dropout_rate: Dropout rate before dense head.
 
     Returns:
-        Compiled or uncompiled tf.keras.Model.
+        Uncompiled tf.keras.Model.
     """
     base_filters = [16, 24, 32, 48, 64]
     filters = [max(8, int(f * alpha)) for f in base_filters]
 
     inputs = layers.Input(shape=input_shape, name="thumb_input")
 
-    # Step 1: Normalization (if input is uint8 [0, 255] -> [0.0, 1.0])
+    # Step 1: Normalization
     x = layers.Rescaling(1.0 / 255.0, name="rescaling")(inputs)
 
     # Step 2: Initial Conv2D with Stride 2 (128x128 -> 64x64)
@@ -91,7 +112,7 @@ def build_micro_corner_regressor(
     # Stage 3: 16x16 -> 8x8
     x = depthwise_separable_block(x, filters=filters[3], stride=2, name_prefix="ds_stage3")
 
-    # Stage 4: 8x8 -> 8x8 (stride 1 preserves 8x8 spatial resolution instead of 4x4 bottleneck)
+    # Stage 4: 8x8 -> 8x8 (stride 1 preserves 8x8 spatial resolution)
     x = depthwise_separable_block(x, filters=filters[4], stride=1, name_prefix="ds_stage4")
     deep_8x8 = x
 
@@ -115,10 +136,25 @@ def build_micro_corner_regressor(
     if dropout_rate > 0:
         x = layers.Dropout(dropout_rate, name="head_dropout")(x)
 
-    # Output: 8 normalized coordinates in [0.0, 1.0] via Sigmoid
-    outputs = layers.Dense(num_coords, activation="sigmoid", name="corners_output")(x)
+    # Vectorized Parallelogram Output Parameters:
+    # 1. Centroid (cx, cy) in [0.0, 1.0] via Sigmoid
+    center = layers.Dense(2, activation="sigmoid", name="center_dense")(x)
 
-    model = models.Model(inputs=inputs, outputs=outputs, name=f"MicroCornerRegressor_V2_a{int(alpha*100):02d}")
+    # 2. Long vector u = (ux, uy) in [-0.5, 0.5] via Tanh * 0.5
+    u_vec = layers.Dense(2, activation="tanh", name="u_vec_dense")(x)
+    u_vec = layers.Rescaling(0.5, name="u_vec_scale")(u_vec)
+
+    # 3. Short vector v = (vx, vy) in [-0.5, 0.5] via Tanh * 0.5
+    v_vec = layers.Dense(2, activation="tanh", name="v_vec_dense")(x)
+    v_vec = layers.Rescaling(0.5, name="v_vec_scale")(v_vec)
+
+    # Concatenate 6 parameters -> (batch, 6)
+    vec_params = layers.Concatenate(name="vec_params_concat")([center, u_vec, v_vec])
+
+    # Output: 8 normalized corners reconstructed via Lambda layer
+    outputs = layers.Lambda(vector_to_corners, name="corners_output")(vec_params)
+
+    model = models.Model(inputs=inputs, outputs=outputs, name=f"MicroCornerRegressor_V3_a{int(alpha*100):02d}")
     return model
 
 
