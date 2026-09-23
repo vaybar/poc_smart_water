@@ -158,7 +158,7 @@ class CosineAnnealingSchedule(tf.keras.callbacks.Callback):
     def on_epoch_begin(self, epoch, logs=None):
         cos_decay = 0.5 * (1 + math.cos(math.pi * epoch / self.total_epochs))
         new_lr = self.min_lr + (self.initial_lr - self.min_lr) * cos_decay
-        tf.keras.backend.set_value(self.model.optimizer.learning_rate, new_lr)
+        self.model.optimizer.learning_rate.assign(new_lr)
         if epoch % 10 == 0:
             print(f"  [CosineAnnealing] Epoch {epoch}: LR = {new_lr:.6f}")
 
