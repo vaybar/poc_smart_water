@@ -19,6 +19,7 @@ Este documento registra sistemáticamente cada experimento realizado para la loc
 | **EXP_004** | 2026-09-22 21:36 | 0.75 | 128x128x1 | 0.0019 | 13.1 px | 28.1% | 35.1° | 54.8 KB | 24.5 KB | EXP_004: MicroCornerRegressor V2 con resolucion 8x8 y skip connection multiescala |
 | **EXP_005** | 2026-09-22 22:30 | 0.75 | 128x128x1 | 0.0012 | 8.8 px | 36.9% | 23.6° | 54.8 KB | 24.5 KB | EXP_005: MicroCornerRegressor V2 con dataset canonico alineado por eje mayor |
 | **EXP_006** | 2026-09-23 12:58 | 0.75 | 128x128x1 | 0.0017 | 12.1 px | 20.4% | 30.2° | 54.6 KB | 24.5 KB | EXP_006: Calculo con centroide y rectas hacia arriba y costado (abarcando el rectangulo) |
+| **EXP_007** | 2026-09-23 17:04 | 0.75 | 128x128x1 | 0.2855 | 8.7 px | 41.6% | 23.8° | 54.8 KB | 24.5 KB | EXP_007 - propuesta Claude Opus: Augmentacion Geometrica - Regression con Sigmoid |
 
 ---
 

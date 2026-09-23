@@ -1,0 +1,19 @@
+{
+    "Exp_ID": "EXP_007",
+    "Timestamp": "2026-09-23 17:04",
+    "Alpha": 0.75,
+    "Input_Shape": "128x128x1",
+    "Epochs": 120,
+    "Batch_Size": 32,
+    "Train_Loss": 0.28464,
+    "Val_Loss": 0.28552,
+    "Corner_MAE_px": 8.69,
+    "Polygon_IoU": 0.4158,
+    "Angle_Error_deg": 23.75,
+    "Flash_INT8_KB": 54.76,
+    "Tensor_Arena_KB": 24.5,
+    "Latency_ESP32_ms": 538.3,
+    "Hypothesis": "Wing+IoU loss + aug geometrica + sigmoid directo llevara IoU > 60% y MAE < 5px sin exceder 55KB Flash.",
+    "Notes": "EXP_007 - propuesta Claude Opus: Augmentacion Geometrica - Regression con Sigmoid",
+    "Conclusions": "Corner MAE: 8.7px, IoU: 41.6%, Angle Error: 23.7\u00b0. Fits in 54.8KB Flash."
+}
