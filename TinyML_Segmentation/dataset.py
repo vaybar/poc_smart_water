@@ -7,7 +7,8 @@ Loads the water meter counter localization dataset:
 3. Implements affine-safe data augmentation (rotation, brightness, contrast, scaling).
 4. Implements spatial geometric augmentation (rotation, scale, translation, flip)
    that co-transforms images AND keypoint coordinates consistently.
-5. Generates representative calibration dataset for full INT8 post-training quantization.
+5. Implements CutOut (random erasing) to simulate partial occlusions.
+6. Generates representative calibration dataset for full INT8 post-training quantization.
 """
 
 from pathlib import Path
@@ -43,6 +44,39 @@ def apply_photometric_augmentation(img_gray: np.ndarray) -> np.ndarray:
         aug = cv2.GaussianBlur(aug, (ksize, ksize), 0)
 
     return np.clip(aug, 0, 255).astype(np.uint8)
+
+
+def apply_cutout(img_gray: np.ndarray, max_patches: int = 3,
+                 patch_ratio_range: tuple = (0.05, 0.15)) -> np.ndarray:
+    """
+    Random Erasing / CutOut augmentation — masks rectangular patches to simulate
+    partial occlusions (mud, water droplets, insects, shadows over the meter).
+
+    Only modifies the image, NOT keypoint coordinates (occlusions don't move corners).
+
+    Args:
+        img_gray: (H, W) uint8 grayscale image.
+        max_patches: Maximum number of rectangular patches to erase (1 to max_patches).
+        patch_ratio_range: (min, max) fraction of image dimension for patch size.
+
+    Returns:
+        Augmented image with random gray-filled rectangular patches.
+    """
+    h, w = img_gray.shape[:2]
+    aug = img_gray.copy()
+
+    n_patches = np.random.randint(1, max_patches + 1)
+    for _ in range(n_patches):
+        ratio_h = np.random.uniform(*patch_ratio_range)
+        ratio_w = np.random.uniform(*patch_ratio_range)
+        ph = max(1, int(h * ratio_h))
+        pw = max(1, int(w * ratio_w))
+        y0 = np.random.randint(0, max(1, h - ph))
+        x0 = np.random.randint(0, max(1, w - pw))
+        # Fill with random mid-gray (avoids strong black/white artifacts)
+        aug[y0:y0 + ph, x0:x0 + pw] = np.random.randint(50, 200)
+
+    return aug
 
 
 def apply_spatial_augmentation(
@@ -136,15 +170,15 @@ def apply_spatial_augmentation(
     return aug_img, aug_pts.flatten().astype(np.float32)
 
 
-def load_paired_dataset(split: str = "train", augment: bool = False, augment_factor: int = 4) -> tuple[np.ndarray, np.ndarray]:
+def load_paired_dataset(split: str = "train", augment: bool = False, augment_factor: int = 6) -> tuple[np.ndarray, np.ndarray]:
     """
     Loads all paired images and 4-corner keypoints for a given split ('train', 'val', 'test').
 
     Args:
         split: Dataset split ('train', 'val', 'test').
         augment: If True (recommended for training), multiplies dataset with
-                 combined spatial + photometric augmentation.
-        augment_factor: Number of augmented copies per training image (default 4).
+                 combined spatial + photometric + cutout augmentation.
+        augment_factor: Number of augmented copies per training image (default 6).
 
     Returns:
         images: (N, 128, 128, 1) uint8 numpy array.
@@ -190,13 +224,16 @@ def load_paired_dataset(split: str = "train", augment: bool = False, augment_fac
             images.append(np.expand_dims(resized, axis=-1))
             targets.append(kpts.tolist())
 
-            # Augmented copies for training: spatial + photometric combined
+            # Augmented copies for training: spatial + photometric + cutout
             if augment and split == "train":
                 for _ in range(augment_factor):
                     # First: spatial augmentation (transforms both image and keypoints)
                     aug_img, aug_kpts = apply_spatial_augmentation(resized, kpts)
-                    # Then: photometric augmentation on top (doesn't change keypoints)
+                    # Then: photometric augmentation (doesn't change keypoints)
                     aug_img = apply_photometric_augmentation(aug_img)
+                    # Then: CutOut with 50% probability (doesn't change keypoints)
+                    if np.random.rand() > 0.5:
+                        aug_img = apply_cutout(aug_img)
                     images.append(np.expand_dims(aug_img, axis=-1))
                     targets.append(aug_kpts.tolist())
 

@@ -3,8 +3,8 @@ train.py - Training Pipeline for Micro-Corner-Regressor in Google Colab / Local
 
 Trains the ultra-lightweight corner localization model:
 - Loads paired 128x128 grayscale images and 4-corner keypoints.
-- Trains with Wing + Soft IoU composite loss for landmark-grade precision.
-- Implements Cosine Annealing LR, EarlyStopping and ModelCheckpoint callbacks.
+- Trains with Curriculum Loss: L1 → Wing → Wing+SoftIoU (progressive difficulty).
+- Implements Warmup + Cosine Annealing LR for stable convergence.
 - Quantizes and evaluates the model post-training.
 - Automatically logs metrics to report.json, report.md, and BITACORA_EXPERIMENTOS.md.
 """
@@ -52,14 +52,15 @@ def wing_loss(y_true, y_pred, w=0.03, epsilon=0.01):
 # ---------------------------------------------------------------------------
 #  Soft Polygon IoU Loss — differentiable rasterization-based IoU
 # ---------------------------------------------------------------------------
-def soft_polygon_iou_loss(y_true, y_pred, canvas_size=64):
+def soft_polygon_iou_loss(y_true, y_pred, canvas_size=128):
     """
     Differentiable Polygon IoU loss via soft rasterization.
 
     Renders predicted and ground-truth quadrilaterals onto a soft canvas
     using distance-to-edge sigmoid approximation, then computes 1 - IoU.
 
-    This directly aligns the training loss with the evaluation metric (Polygon IoU).
+    Uses canvas_size=128 (upgraded from 64 in EXP_007) for higher gradient
+    precision at the quad boundaries.
 
     Args:
         y_true: (batch, 8) ground truth normalized corner coords.
@@ -90,13 +91,10 @@ def soft_polygon_iou_loss(y_true, y_pred, canvas_size=64):
             ey = pts[:, j, 1] - pts[:, i, 1]
 
             # Normal direction (pointing inward for CW ordering)
-            # Cross product sign: (P - A) x (B - A) > 0 means left of edge
-            # For our canonical TL->TR->BR->BL (CW), inward is the right side
             ax = pts[:, i, 0]  # (batch,)
             ay = pts[:, i, 1]
 
             # Signed distance from each grid point to edge line
-            # d = (gx - ax) * ey - (gy - ay) * ex
             ax_r = tf.reshape(ax, [-1, 1, 1])
             ay_r = tf.reshape(ay, [-1, 1, 1])
             ex_r = tf.reshape(ex, [-1, 1, 1])
@@ -105,8 +103,7 @@ def soft_polygon_iou_loss(y_true, y_pred, canvas_size=64):
             d = (gx[:, :, :, 0] - ax_r) * ey_r - (gy[:, :, :, 0] - ay_r) * ex_r
 
             # Soft step function: sigmoid with temperature for differentiability
-            # Negative d = inside (right of CW edge), positive = outside
-            sigma = 200.0  # Higher = sharper boundary (200 ≈ ~0.5px transition at 64x64)
+            sigma = 200.0  # Higher = sharper boundary
             edge_mask = tf.sigmoid(-d * sigma * tf.cast(canvas_size, tf.float32))
             inside_accum = inside_accum * edge_mask
 
@@ -124,43 +121,96 @@ def soft_polygon_iou_loss(y_true, y_pred, canvas_size=64):
 
 
 # ---------------------------------------------------------------------------
-#  Composite Loss: Wing + Soft IoU
+#  Curriculum Loss — progressive difficulty schedule
 # ---------------------------------------------------------------------------
-def wing_iou_loss(y_true, y_pred):
-    """
-    Composite loss combining Wing Loss (coordinate precision) with
-    Soft Polygon IoU Loss (shape overlap accuracy).
+# Module-level variable tracking current epoch for the curriculum loss
+_curriculum_epoch = tf.Variable(0.0, dtype=tf.float32, trainable=False, name="curriculum_epoch")
 
-    Weights: 0.6 * Wing + 0.4 * (1 - SoftIoU)
+
+def curriculum_loss(y_true, y_pred):
     """
+    Curriculum composite loss with smooth phase transitions.
+
+    Phase schedule (smooth blending, not hard switches):
+    - Epochs 0-40:  L1 (MAE) dominates — fast convergence to general quad area
+    - Epochs 20-60: Wing Loss ramps up — precision refinement for small errors
+    - Epochs 60-150: SoftIoU ramps up — direct IoU metric alignment
+
+    The smooth blending avoids training instability at phase boundaries.
+    """
+    epoch = _curriculum_epoch
+
+    # Smooth weight transitions
+    # L1: full at epoch 0, linearly fades to 0 by epoch 40
+    w_l1 = tf.maximum(0.0, 1.0 - epoch / 40.0)
+
+    # Wing: 0 until epoch 20, ramps to full by epoch 40, stays
+    w_wing = tf.minimum(1.0, tf.maximum(0.0, (epoch - 20.0) / 20.0))
+
+    # SoftIoU: 0 until epoch 60, ramps to full by epoch 80, stays
+    w_iou = tf.minimum(1.0, tf.maximum(0.0, (epoch - 60.0) / 20.0))
+
+    # Compute individual losses
+    l_l1 = tf.reduce_mean(tf.abs(y_true - y_pred))
     l_wing = wing_loss(y_true, y_pred)
-    l_iou = soft_polygon_iou_loss(y_true, y_pred)
-    return 0.6 * l_wing + 0.4 * l_iou
+    l_iou = soft_polygon_iou_loss(y_true, y_pred, canvas_size=128)
+
+    # Weighted combination (0.4 weight cap on IoU to prevent gradient domination)
+    total_w = w_l1 + w_wing + 0.4 * w_iou + 1e-8
+    return (w_l1 * l_l1 + w_wing * l_wing + 0.4 * w_iou * l_iou) / total_w
+
+
+class CurriculumLossScheduler(tf.keras.callbacks.Callback):
+    """
+    Updates the curriculum epoch variable at each epoch start.
+    The curriculum_loss function reads this variable to blend loss components.
+    """
+    def on_epoch_begin(self, epoch, logs=None):
+        _curriculum_epoch.assign(float(epoch))
+        if epoch % 20 == 0:
+            # Compute current weights for logging
+            w_l1 = max(0.0, 1.0 - epoch / 40.0)
+            w_wing = min(1.0, max(0.0, (epoch - 20.0) / 20.0))
+            w_iou = min(1.0, max(0.0, (epoch - 60.0) / 20.0))
+            phase = "L1" if epoch < 20 else ("L1→Wing" if epoch < 40 else ("Wing" if epoch < 60 else "Wing+IoU"))
+            print(f"  [Curriculum] Epoch {epoch}: Phase={phase} | w_l1={w_l1:.2f} w_wing={w_wing:.2f} w_iou={w_iou:.2f}")
 
 
 # ---------------------------------------------------------------------------
-#  Cosine Annealing LR Scheduler
+#  Warmup + Cosine Annealing LR Scheduler
 # ---------------------------------------------------------------------------
-class CosineAnnealingSchedule(tf.keras.callbacks.Callback):
+class WarmupCosineSchedule(tf.keras.callbacks.Callback):
     """
-    Cosine Annealing learning rate schedule (Loshchilov & Hutter, 2016).
+    Learning rate schedule with linear warmup followed by cosine annealing.
 
-    Smoothly decreases LR from initial_lr to min_lr following a cosine curve,
-    avoiding the abrupt drops of ReduceLROnPlateau and enabling escape from
-    sharp local minima.
+    - Warmup (epochs 0 to warmup_epochs): LR linearly increases from 0 to initial_lr
+    - Cosine decay (epochs warmup_epochs to total_epochs): LR decreases following
+      cos curve from initial_lr to min_lr
+
+    The warmup prevents gradient explosion at training start, especially important
+    with the curriculum loss where early gradients from L1 can be large.
     """
-    def __init__(self, initial_lr: float, min_lr: float, total_epochs: int):
+    def __init__(self, initial_lr: float, min_lr: float, total_epochs: int, warmup_epochs: int = 5):
         super().__init__()
         self.initial_lr = initial_lr
         self.min_lr = min_lr
         self.total_epochs = total_epochs
+        self.warmup_epochs = warmup_epochs
 
     def on_epoch_begin(self, epoch, logs=None):
-        cos_decay = 0.5 * (1 + math.cos(math.pi * epoch / self.total_epochs))
-        new_lr = self.min_lr + (self.initial_lr - self.min_lr) * cos_decay
+        if epoch < self.warmup_epochs:
+            # Linear warmup: 0 → initial_lr
+            new_lr = self.initial_lr * (epoch + 1) / self.warmup_epochs
+        else:
+            # Cosine decay: initial_lr → min_lr
+            progress = (epoch - self.warmup_epochs) / max(1, self.total_epochs - self.warmup_epochs)
+            cos_decay = 0.5 * (1 + math.cos(math.pi * progress))
+            new_lr = self.min_lr + (self.initial_lr - self.min_lr) * cos_decay
+
         self.model.optimizer.learning_rate.assign(new_lr)
         if epoch % 10 == 0:
-            print(f"  [CosineAnnealing] Epoch {epoch}: LR = {new_lr:.6f}")
+            phase = "warmup" if epoch < self.warmup_epochs else "cosine"
+            print(f"  [WarmupCosine] Epoch {epoch}: LR = {new_lr:.6f} ({phase})")
 
 
 # ---------------------------------------------------------------------------
@@ -219,14 +269,14 @@ def check_canonical_labels(num_samples: int = 20):
 # ---------------------------------------------------------------------------
 def train_segmenter(
     alpha: float = config.ALPHA,
-    epochs: int = 120,
+    epochs: int = 150,
     batch_size: int = config.BATCH_SIZE,
     learning_rate: float = config.INITIAL_LR,
-    notes: str = "EXP_007: Wing+IoU loss, aug geometrica espacial, salida directa sigmoid(8)",
-    hypothesis: str = "Wing+IoU loss + aug geometrica + sigmoid directo llevara IoU > 60% y MAE < 5px sin exceder 55KB Flash."
+    notes: str = "EXP_008: CoordConv + Centro-Offsets + Curriculum Loss + CutOut",
+    hypothesis: str = "CoordConv preserva info espacial, centro+offsets acopla esquinas, curriculum loss evita dead gradients -> IoU > 55% y MAE < 6px"
 ):
     print("=" * 65)
-    print("  TRAINING MICRO-CORNER-REGRESSOR V4 (TinyML_Segmentation)")
+    print("  TRAINING MICRO-CORNER-REGRESSOR V5 (TinyML_Segmentation)")
     print(f"  Alpha: {alpha} | Epochs: {epochs} | Batch Size: {batch_size} | LR: {learning_rate}")
     print("=" * 65)
 
@@ -235,8 +285,8 @@ def train_segmenter(
     check_canonical_labels()
 
     # 1. Load Data
-    print("\n[1/5] Loading datasets (with spatial + photometric augmentation)...")
-    X_train, y_train = load_paired_dataset("train", augment=True, augment_factor=4)
+    print("\n[1/5] Loading datasets (with spatial + photometric + CutOut augmentation)...")
+    X_train, y_train = load_paired_dataset("train", augment=True, augment_factor=6)
     X_val, y_val = load_paired_dataset("val", augment=False)
 
     if len(X_train) == 0:
@@ -246,7 +296,7 @@ def train_segmenter(
     print(f"  Loaded {len(X_train)} training samples (with augmentation) and {len(X_val)} validation samples.")
 
     # 2. Build Model
-    print("\n[2/5] Building model (V4 Direct Sigmoid Output)...")
+    print("\n[2/5] Building model (V5 CoordConv + Center-Offsets)...")
     model = build_micro_corner_regressor(
         input_shape=config.THUMB_INPUT_SHAPE,
         num_coords=config.NUM_COORDINATES,
@@ -256,7 +306,7 @@ def train_segmenter(
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-        loss=wing_iou_loss,
+        loss=curriculum_loss,
         metrics=["mae"]
     )
     model.summary()
@@ -269,14 +319,16 @@ def train_segmenter(
             save_best_only=True,
             verbose=1
         ),
-        CosineAnnealingSchedule(
+        CurriculumLossScheduler(),
+        WarmupCosineSchedule(
             initial_lr=learning_rate,
             min_lr=config.MIN_LR,
-            total_epochs=epochs
+            total_epochs=epochs,
+            warmup_epochs=5
         ),
         tf.keras.callbacks.EarlyStopping(
             monitor="val_loss",
-            patience=25,
+            patience=30,
             restore_best_weights=True,
             verbose=1
         )
@@ -302,10 +354,10 @@ def train_segmenter(
     val_preds = model.predict(X_val, batch_size=batch_size)
     metrics = evaluate_predictions(y_val, val_preds, img_size=config.THUMB_W)
 
-    print(f"  Validation Loss (Wing+IoU): {history.history['val_loss'][-1]:.5f}")
-    print(f"  Corner MAE (pixels):        {metrics['corner_mae_px']:.2f} px (on 128x128)")
-    print(f"  Mean Polygon IoU:           {metrics['mean_polygon_iou'] * 100:.2f}%")
-    print(f"  Mean Angle Error:           {metrics['mean_angle_error_deg']:.2f}°")
+    print(f"  Validation Loss (Curriculum): {history.history['val_loss'][-1]:.5f}")
+    print(f"  Corner MAE (pixels):          {metrics['corner_mae_px']:.2f} px (on 128x128)")
+    print(f"  Mean Polygon IoU:             {metrics['mean_polygon_iou'] * 100:.2f}%")
+    print(f"  Mean Angle Error:             {metrics['mean_angle_error_deg']:.2f}°")
 
     # 6. INT8 Quantization Estimation & Logging
     print("\n[5/5] Estimating INT8 size and recording experiment...")
@@ -343,11 +395,11 @@ def train_segmenter(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train Micro-Corner-Regressor")
     parser.add_argument("--alpha", type=float, default=config.ALPHA, help="Width multiplier (0.25, 0.50, 0.75)")
-    parser.add_argument("--epochs", type=int, default=120, help="Number of epochs")
+    parser.add_argument("--epochs", type=int, default=150, help="Number of epochs")
     parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE, help="Batch size")
     parser.add_argument("--lr", type=float, default=config.INITIAL_LR, help="Initial learning rate")
-    parser.add_argument("--notes", type=str, default="EXP_007: Wing+IoU loss, aug geometrica espacial, salida directa sigmoid(8)", help="Notes for bitácora")
-    parser.add_argument("--hypothesis", type=str, default="Wing+IoU loss + aug geometrica + sigmoid directo llevara IoU > 60% y MAE < 5px sin exceder 55KB Flash.", help="Hypothesis for bitácora")
+    parser.add_argument("--notes", type=str, default="EXP_008: CoordConv + Centro-Offsets + Curriculum Loss + CutOut", help="Notes for bitácora")
+    parser.add_argument("--hypothesis", type=str, default="CoordConv preserva info espacial, centro+offsets acopla esquinas, curriculum loss evita dead gradients -> IoU > 55% y MAE < 6px", help="Hypothesis for bitácora")
     args = parser.parse_args()
 
     train_segmenter(
@@ -358,4 +410,3 @@ if __name__ == "__main__":
         notes=args.notes,
         hypothesis=args.hypothesis
     )
-

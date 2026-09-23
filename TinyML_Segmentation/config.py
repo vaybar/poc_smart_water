@@ -44,6 +44,7 @@ STRIP_W_6 = DEFAULT_NUM_DIGITS * DIGIT_W  # 192 px for 6 digits
 ALPHA = 0.75                        # Width multiplier for Micro-Pose-CNN (0.25, 0.50, 0.75)
 NUM_KEYPOINTS = 4                   # 4 corners: Top-Left, Top-Right, Bottom-Right, Bottom-Left
 NUM_COORDINATES = NUM_KEYPOINTS * 2 # 8 coordinates (x1, y1, ..., x4, y4)
+MAX_QUAD_OFFSET = 0.35              # Max corner offset from center (tanh * 0.35)
 
 # Dataset Paths
 DATASET_ROOT = ROOT_DIR / "water_meter"
