@@ -5,7 +5,9 @@ Loads the water meter counter localization dataset:
 1. Parses images and 4-corner keypoints from YOLO format labels.
 2. Resizes and converts images to (128, 128, 1) grayscale thumbnails.
 3. Implements affine-safe data augmentation (rotation, brightness, contrast, scaling).
-4. Generates representative calibration dataset for full INT8 post-training quantization.
+4. Implements spatial geometric augmentation (rotation, scale, translation, flip)
+   that co-transforms images AND keypoint coordinates consistently.
+5. Generates representative calibration dataset for full INT8 post-training quantization.
 """
 
 from pathlib import Path
@@ -42,14 +44,107 @@ def apply_photometric_augmentation(img_gray: np.ndarray) -> np.ndarray:
 
     return np.clip(aug, 0, 255).astype(np.uint8)
 
-def load_paired_dataset(split: str = "train", augment: bool = False, augment_factor: int = 2) -> tuple[np.ndarray, np.ndarray]:
+
+def apply_spatial_augmentation(
+    img_gray: np.ndarray,
+    kpts: np.ndarray,
+    max_rotation_deg: float = 15.0,
+    max_scale_delta: float = 0.10,
+    max_translate_frac: float = 0.05,
+    flip_prob: float = 0.5,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Applies geometric spatial augmentation that co-transforms image AND keypoints.
+
+    Operations (applied in order):
+    1. Random rotation ±max_rotation_deg around image center
+    2. Random uniform scale (1 ± max_scale_delta)
+    3. Random translation ±max_translate_frac of image size
+    4. Random horizontal flip with probability flip_prob
+
+    Args:
+        img_gray: (H, W) uint8 grayscale image.
+        kpts: (8,) float32 normalized keypoint coordinates [x1,y1,...,x4,y4] in [0,1].
+        max_rotation_deg: Maximum rotation angle in degrees.
+        max_scale_delta: Maximum scale deviation (e.g. 0.10 → scale in [0.90, 1.10]).
+        max_translate_frac: Maximum translation as fraction of image size.
+        flip_prob: Probability of horizontal flip.
+
+    Returns:
+        aug_img: (H, W) uint8 augmented grayscale image.
+        aug_kpts: (8,) float32 augmented normalized keypoints, clamped to [0,1].
+    """
+    h, w = img_gray.shape[:2]
+    pts = kpts.reshape(4, 2).copy()
+
+    # Convert normalized coords to pixel coords
+    pts_px = pts.copy()
+    pts_px[:, 0] *= w
+    pts_px[:, 1] *= h
+
+    cx, cy = w / 2.0, h / 2.0
+
+    # 1. Random Rotation
+    angle_deg = np.random.uniform(-max_rotation_deg, max_rotation_deg)
+    M_rot = cv2.getRotationMatrix2D((cx, cy), angle_deg, 1.0)
+
+    # 2. Random Scale
+    scale = np.random.uniform(1.0 - max_scale_delta, 1.0 + max_scale_delta)
+    M_rot[:, :2] *= scale
+
+    # 3. Random Translation
+    tx = np.random.uniform(-max_translate_frac, max_translate_frac) * w
+    ty = np.random.uniform(-max_translate_frac, max_translate_frac) * h
+    M_rot[0, 2] += tx
+    M_rot[1, 2] += ty
+
+    # Apply affine transform to image
+    aug_img = cv2.warpAffine(
+        img_gray, M_rot, (w, h),
+        flags=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_REFLECT_101
+    )
+
+    # Apply affine transform to keypoints
+    pts_hom = np.hstack([pts_px, np.ones((4, 1))])  # (4, 3)
+    pts_transformed = (M_rot @ pts_hom.T).T  # (4, 2)
+
+    # 4. Random Horizontal Flip
+    if np.random.rand() < flip_prob:
+        aug_img = cv2.flip(aug_img, 1)
+        pts_transformed[:, 0] = w - 1 - pts_transformed[:, 0]
+        # After horizontal flip, swap TL↔TR and BL↔BR to maintain canonical order:
+        # Original order: [TL, TR, BR, BL] → Flipped: [TR', TL', BL', BR']
+        # Reorder to: [TL', TR', BR', BL']
+        pts_transformed = pts_transformed[[1, 0, 3, 2], :]
+
+    # Normalize back to [0, 1]
+    aug_pts = pts_transformed.copy()
+    aug_pts[:, 0] /= w
+    aug_pts[:, 1] /= h
+
+    # Clamp to valid range and check if quad is still mostly visible
+    aug_pts = np.clip(aug_pts, 0.0, 1.0)
+
+    # Reject if any corner is pushed too far to the edge (quad collapsed)
+    quad_w = np.max(aug_pts[:, 0]) - np.min(aug_pts[:, 0])
+    quad_h = np.max(aug_pts[:, 1]) - np.min(aug_pts[:, 1])
+    if quad_w < 0.05 or quad_h < 0.02:
+        # Augmentation collapsed the quad — return original unchanged
+        return img_gray.copy(), kpts.copy()
+
+    return aug_img, aug_pts.flatten().astype(np.float32)
+
+
+def load_paired_dataset(split: str = "train", augment: bool = False, augment_factor: int = 4) -> tuple[np.ndarray, np.ndarray]:
     """
     Loads all paired images and 4-corner keypoints for a given split ('train', 'val', 'test').
 
     Args:
         split: Dataset split ('train', 'val', 'test').
-        augment: If True (recommended for training), multiplies dataset with photometric variations.
-        augment_factor: Number of augmented copies per training image.
+        augment: If True (recommended for training), multiplies dataset with
+                 combined spatial + photometric augmentation.
+        augment_factor: Number of augmented copies per training image (default 4).
 
     Returns:
         images: (N, 128, 128, 1) uint8 numpy array.
@@ -79,8 +174,8 @@ def load_paired_dataset(split: str = "train", augment: bool = False, augment_fac
                 continue
 
             # Extract 4 keypoints (x1, y1, x2, y2, x3, y3, x4, y4)
-            kpts = [float(v) for v in tokens[5:13]]
-            if any(v < 0.0 or v > 1.0 for v in kpts):
+            kpts = np.array([float(v) for v in tokens[5:13]], dtype=np.float32)
+            if np.any(kpts < 0.0) or np.any(kpts > 1.0):
                 continue
 
             # Load image in grayscale
@@ -91,16 +186,19 @@ def load_paired_dataset(split: str = "train", augment: bool = False, augment_fac
             # Resize to thumbnail (128, 128)
             resized = cv2.resize(img, (config.THUMB_W, config.THUMB_H), interpolation=cv2.INTER_AREA)
 
-            # Original sample
+            # Original sample (always included)
             images.append(np.expand_dims(resized, axis=-1))
-            targets.append(kpts)
+            targets.append(kpts.tolist())
 
-            # Augmented copies for training
+            # Augmented copies for training: spatial + photometric combined
             if augment and split == "train":
                 for _ in range(augment_factor):
-                    aug_img = apply_photometric_augmentation(resized)
+                    # First: spatial augmentation (transforms both image and keypoints)
+                    aug_img, aug_kpts = apply_spatial_augmentation(resized, kpts)
+                    # Then: photometric augmentation on top (doesn't change keypoints)
+                    aug_img = apply_photometric_augmentation(aug_img)
                     images.append(np.expand_dims(aug_img, axis=-1))
-                    targets.append(kpts)
+                    targets.append(aug_kpts.tolist())
 
         except Exception:
             continue
